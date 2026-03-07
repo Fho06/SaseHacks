@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, type ReactNode } from "react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   ArrowRight,
+  AlertCircle,
   Upload,
   MessageSquare,
   Award,
@@ -37,7 +38,7 @@ function ThemeToggle() {
   )
 }
 
-const TechStackBadge = ({ label, icon: Icon }: { label: string; icon: React.ReactNode }) => (
+const TechStackBadge = ({ label, icon: Icon }: { label: string; icon: ReactNode }) => (
   <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary/50 border border-border/50 text-sm text-foreground">
     {Icon}
     <span>{label}</span>
@@ -46,7 +47,6 @@ const TechStackBadge = ({ label, icon: Icon }: { label: string; icon: React.Reac
 
 export default function FinVoiceLanding() {
   const [selectedExample, setSelectedExample] = useState(0)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const examples = [
     {
@@ -188,7 +188,7 @@ export default function FinVoiceLanding() {
                     <div className="flex-1">
                       <div className="bg-secondary/50 rounded-lg p-4 text-sm">
                         <p className="text-foreground font-medium mb-1">What are the biggest risks mentioned in this quarter's filing?</p>
-                        <p className="text-muted-foreground text-xs">You · 2 min ago</p>
+                        <p className="text-muted-foreground text-xs">You - 2 min ago</p>
                       </div>
                     </div>
                   </div>
@@ -656,9 +656,9 @@ export default function FinVoiceLanding() {
           </div>
           <div className="border-t border-border/30 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-xs text-muted-foreground text-center md:text-left">
-              © 2024 FinVoice Copilot. Built for financial intelligence. Not investment advice.
+              (c) 2024 FinVoice Copilot. Built for financial intelligence. Not investment advice.
             </p>
-            <p className="text-xs text-muted-foreground">Hackathon MVP · Powered by RAG & Gemini</p>
+            <p className="text-xs text-muted-foreground">Hackathon MVP - Powered by RAG & Gemini</p>
           </div>
         </div>
       </footer>
