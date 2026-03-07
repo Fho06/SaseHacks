@@ -15,6 +15,9 @@ const app = express()
 
 app.use(cors())
 app.use(express.json())
+app.get("/", (req, res) => {
+  res.json({ status: "server running" })
+})
 
 // ensure file is stored in memory so req.file.buffer exists
 const upload = multer({ storage: multer.memoryStorage() })
@@ -95,6 +98,6 @@ app.post("/ask", async (req, res) => {
   }
 })
 
-app.listen(5000, () => {
-  console.log("Server running on port 5000")
+app.listen(5050, () => {
+  console.log("Server running on port 5050")
 })
