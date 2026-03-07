@@ -6,7 +6,6 @@ import { randomUUID } from "crypto"
 
 import { chunkText } from "./chunker.js"
 import { embedText } from "./embeddings.js"
-import { answerQuestion } from "./rag.js"
 import { db } from "./mongodb.js"
 import { CHUNKS_COLLECTION } from "./search-indexes.js"
 

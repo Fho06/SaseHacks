@@ -146,9 +146,13 @@ ${context}
 
 Question:
 ${question}
-`
+`;
 
-  const response = await model.generateContent(prompt)
+  // correct call for @google/genai
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt
+  });
 
   return {
     answer: response.response.text(),
