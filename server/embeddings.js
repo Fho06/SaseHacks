@@ -11,11 +11,11 @@ const ai = new GoogleGenAI({
 });
 
 export async function embedText(text) {
-
   const response = await ai.models.embedContent({
     model: "gemini-embedding-001",
     contents: text
   });
 
-  return response.embeddings[0].values;
+  // handle response safely
+  return response.embeddings?.[0]?.values || response.embedding?.values;
 }

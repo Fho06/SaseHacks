@@ -3,7 +3,7 @@ import multer from "multer"
 import cors from "cors"
 import { createRequire } from "module"
 import { randomUUID } from "crypto"
-
+import { answerQuestion } from "./rag.js"
 import { chunkText } from "./chunker.js"
 import { embedText } from "./embeddings.js"
 import { db } from "./mongodb.js"
@@ -49,26 +49,26 @@ app.post("/upload", upload.array("files"), async (req, res) => {
         const parsed = await parser.getText()
         extractedText = parsed.text || ""
       }
-
+      
       const chunks = chunkText(extractedText)
+      const chunkDocs = []
 
-      const chunkDocs = await Promise.all(
-        chunks.map(async (chunk, chunkIndex) => {
-          const embedding = await embedText(chunk)
-          return {
-            sessionId,
-            documentId,
-            filename: file.originalname || "uploaded-file.pdf",
-            sourceType,
-            page: null,
-            chunkIndex,
-            text: chunk,
-            embedding,
-            embeddingModel: "gemini-embedding-001",
-            createdAt: uploadedAt
-          }
+      for (let i = 0; i < chunks.length; i++) {
+        const embedding = await embedText(chunks[i])
+
+        chunkDocs.push({
+          sessionId,
+          documentId,
+          filename: file.originalname || "uploaded-file.pdf",
+          sourceType,
+          page: null,
+          chunkIndex: i,
+          text: chunks[i],
+          embedding,
+          embeddingModel: "gemini-embedding-001",
+          createdAt: uploadedAt
         })
-      )
+      }
 
       documents.push(...chunkDocs)
       uploadedFiles.push({
