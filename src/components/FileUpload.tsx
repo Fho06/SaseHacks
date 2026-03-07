@@ -35,12 +35,12 @@ export default function FileUpload() {
     <div className="space-y-4">
       <div
         {...getRootProps()}
-        className={`rounded-xl border border-dashed p-8 text-center transition-colors ${
-          isDragActive ? "border-blue-400 bg-blue-500/10" : "border-white/20 bg-white/5 hover:bg-white/10"
+        className={`rounded-xl border border-dashed p-5 text-center transition-colors ${
+          isDragActive ? "border-primary/60 bg-primary/10" : "border-border bg-secondary/30 hover:bg-secondary/50"
         }`}
       >
         <input {...getInputProps()} />
-        <p className="text-sm text-gray-300">
+        <p className="text-sm text-muted-foreground">
           {isDragActive ? "Drop files here..." : "Drag and drop PDFs/TXT files here, or click to browse"}
         </p>
       </div>
@@ -48,9 +48,9 @@ export default function FileUpload() {
       {files.length > 0 ? (
         <ul className="space-y-2 text-sm">
           {files.map((file, idx) => (
-            <li key={`${file.name}-${idx}`} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2">
+            <li key={`${file.name}-${idx}`} className="flex items-center justify-between rounded-lg bg-secondary/40 px-3 py-2">
               <span className="truncate">{file.name}</span>
-              <span className="text-gray-400">{formatBytes(file.size)}</span>
+              <span className="text-muted-foreground">{formatBytes(file.size)}</span>
             </li>
           ))}
         </ul>

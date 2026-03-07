@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import { useState, type FormEvent, type ReactNode } from "react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import FileUpload from "@/components/FileUpload"
 import {
   ArrowRight,
   AlertCircle,
@@ -47,6 +48,17 @@ const TechStackBadge = ({ label, icon: Icon }: { label: string; icon: ReactNode 
 
 export default function FinVoiceLanding() {
   const [selectedExample, setSelectedExample] = useState(0)
+  const [promptInput, setPromptInput] = useState("")
+  const [queuedPrompt, setQueuedPrompt] = useState("")
+
+  function handlePromptSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const trimmedPrompt = promptInput.trim()
+    if (!trimmedPrompt) return
+
+    // This is intentionally local for now. Next step is wiring this to Gemini API.
+    setQueuedPrompt(trimmedPrompt)
+  }
 
   const examples = [
     {
@@ -133,16 +145,27 @@ export default function FinVoiceLanding() {
             <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto text-balance mb-8 leading-relaxed">
               Upload 10-Ks, 10-Qs, earnings call transcripts, and analyst notes. Ask questions in natural language. Get source-backed answers with citations and optional voice playback.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
-              <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
-                <a href="#demo">
-                  Launch Demo
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </a>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="border-border">
-                <a href="#tech-stack">Explore Stack</a>
-              </Button>
+            <div className="max-w-3xl mx-auto mb-8 space-y-4">
+              <div className="rounded-2xl border border-border/50 bg-card/40 p-3 text-left outline-accent">
+                <p className="mb-2 text-sm font-medium">Upload financial documents for context</p>
+                <FileUpload />
+              </div>
+              <form onSubmit={handlePromptSubmit} className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  value={promptInput}
+                  onChange={(event) => setPromptInput(event.target.value)}
+                  placeholder="Ask FinVoice a question about your documents..."
+                  className="h-14 flex-1 rounded-md border border-border bg-secondary/20 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 outline-input"
+                />
+                <Button type="submit" size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                  Queue Prompt
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </form>
+              <p className="text-xs text-muted-foreground text-left sm:text-center">
+                {queuedPrompt ? `Queued prompt: "${queuedPrompt}"` : "Prompt capture is ready. Gemini API request wiring is next."}
+              </p>
             </div>
             <div className="flex flex-wrap justify-center gap-2">
               <TechStackBadge label="MongoDB Atlas" icon={<Database className="h-3.5 w-3.5 text-primary" />} />
@@ -539,7 +562,7 @@ export default function FinVoiceLanding() {
           </div>
 
           <div className="max-w-3xl mx-auto">
-            <Card className="bg-primary/10 border-primary/20">
+            <Card className="bg-primary/10 border-primary/20 outline-accent">
               <CardContent className="p-8">
                 <div className="space-y-4">
                   <div>
@@ -566,7 +589,7 @@ export default function FinVoiceLanding() {
       {/* Final CTA */}
       <section className="py-24 bg-secondary/20">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
+          <div className="max-w-3xl mx-auto text-center border border-border/50 bg-secondary/30">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-balance">Ready to unlock financial intelligence?</h2>
             <p className="text-muted-foreground mb-8 max-w-xl mx-auto text-balance">
               Join researchers and analysts using FinVoice Copilot to accelerate due diligence and investment analysis.

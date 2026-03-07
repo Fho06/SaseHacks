@@ -129,6 +129,17 @@
   }
 }
 
+.outline-accent {
+  outline: 1px solid rgba(255, 255, 255, 0.15);
+  outline-offset: -2px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.dark .outline-accent {
+  outline-color: rgba(255, 255, 255, 0.45);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
 /* Custom animations */
 @keyframes subtle-pulse {
   0%, 100% {
@@ -161,4 +172,14 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+.outline-input {
+  outline: 1px solid rgba(255, 255, 255, 0.25);
+  outline-offset: -1px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.dark .outline-input {
+  outline-color: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
