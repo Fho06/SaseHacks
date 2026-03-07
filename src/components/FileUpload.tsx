@@ -29,7 +29,7 @@ export default function FileUpload() {
       formData.append("files", file)
     })
 
-    await fetch("http://localhost:5000/upload", {
+    await fetch("http://localhost:5050/upload", {
       method: "POST",
       body: formData
     })
