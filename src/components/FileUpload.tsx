@@ -31,29 +31,6 @@ export default function FileUpload() {
     multiple: true,
   })
 
-<<<<<<< HEAD
-  async function uploadFiles() {
-    if (files.length === 0) return
-
-    setUploading(true)
-
-    const formData = new FormData()
-
-    files.forEach(file => {
-      formData.append("files", file)
-    })
-
-    await fetch("http://localhost:5050/upload", {
-      method: "POST",
-      body: formData
-    })
-
-    setUploading(false)
-    alert("Upload complete")
-  }
-
-=======
->>>>>>> 2d57dfed69ca62c3f2e9f2e86daf0addb6043561
   return (
     <div className="space-y-4">
       <div
