@@ -108,9 +108,11 @@ export default function FinVoiceLanding() {
             >
               <Github className="h-4 w-4" />
             </a>
-            <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
-              Try Demo
-              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+            <Button asChild size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
+              <a href="#demo">
+                Try Demo
+                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              </a>
             </Button>
           </div>
         </div>
@@ -132,12 +134,14 @@ export default function FinVoiceLanding() {
               Upload 10-Ks, 10-Qs, earnings call transcripts, and analyst notes. Ask questions in natural language. Get source-backed answers with citations and optional voice playback.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
-              <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
-                Launch Demo
-                <ArrowRight className="ml-2 h-4 w-4" />
+              <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                <a href="#demo">
+                  Launch Demo
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </a>
               </Button>
-              <Button size="lg" variant="outline" className="border-border">
-                Explore Stack
+              <Button asChild size="lg" variant="outline" className="border-border">
+                <a href="#tech-stack">Explore Stack</a>
               </Button>
             </div>
             <div className="flex flex-wrap justify-center gap-2">
@@ -422,7 +426,7 @@ export default function FinVoiceLanding() {
       </section>
 
       {/* Tech Stack */}
-      <section id="tech-stack" className="py-24">
+      <section id="tech-stack" className="py-24 scroll-mt-24">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-balance">Modern fintech stack</h2>
@@ -510,7 +514,7 @@ export default function FinVoiceLanding() {
       </section>
 
       {/* Example Questions */}
-      <section className="py-24">
+      <section id="demo" className="py-24 scroll-mt-24">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-balance">Try these questions</h2>
@@ -568,12 +572,14 @@ export default function FinVoiceLanding() {
               Join researchers and analysts using FinVoice Copilot to accelerate due diligence and investment analysis.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
-                Launch Demo
-                <ArrowRight className="ml-2 h-4 w-4" />
+              <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                <a href="#demo">
+                  Launch Demo
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </a>
               </Button>
-              <Button size="lg" variant="outline" className="border-border">
-                View Architecture
+              <Button asChild size="lg" variant="outline" className="border-border">
+                <a href="#tech-stack">View Architecture</a>
               </Button>
             </div>
           </div>
