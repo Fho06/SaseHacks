@@ -8,6 +8,8 @@ import { chunkText } from "./chunker.js"
 import { embedText } from "./embeddings.js"
 import { db } from "./mongodb.js"
 import { CHUNKS_COLLECTION } from "./search-indexes.js"
+import { generateSpeech } from "./tts.js"
+import { handleChat } from "./chat.js"
 
 const require = createRequire(import.meta.url)
 const pdfParse = require("pdf-parse")
@@ -19,6 +21,7 @@ app.use(express.json())
 app.get("/", (_req, res) => {
   res.json({ status: "server running" })
 })
+app.post("/chat", handleChat)
 
 const upload = multer({ storage: multer.memoryStorage() })
 
@@ -147,6 +150,26 @@ app.post("/ask", async (req, res) => {
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: "Failed to answer question" })
+  }
+})
+
+
+app.get("/speech", async (req, res) => {
+  try {
+    const { text } = req.query
+
+    if (!text) {
+      return res.status(400).json({ error: "Text required" })
+    }
+
+    const audio = await generateSpeech(text)
+
+    res.setHeader("Content-Type", "audio/mpeg")
+    res.send(audio)
+
+  } catch (err) {
+    console.error("Speech error:", err)
+    res.status(500).json({ error: "Speech generation failed" })
   }
 })
 
