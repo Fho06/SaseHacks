@@ -1,17 +1,17 @@
-import { db } from "./mongodb.js"
-import { embedText } from "./embeddings.js"
-import { GoogleGenerativeAI } from "@google/generative-ai"
+import { db } from "./mongodb.js";
+import { embedText } from "./embeddings.js";
+import { GoogleGenAI } from "@google/genai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-
-const model = genAI.getGenerativeModel({
-  model: "gemini-1.5-flash"
-})
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY
+});
 
 export async function answerQuestion(question) {
 
-  const questionEmbedding = await embedText(question)
+  // create embedding for the question
+  const questionEmbedding = await embedText(question);
 
+  // vector search in MongoDB
   const results = await db.collection("chunks").aggregate([
     {
       $vectorSearch: {
@@ -22,26 +22,32 @@ export async function answerQuestion(question) {
         limit: 5
       }
     }
-  ]).toArray()
+  ]).toArray();
 
-  const context = results.map(r => r.text).join("\n\n")
+  console.log("Retrieved chunks:", results.length);
+
+  const context = results.map(r => r.text).join("\n\n");
 
   const prompt = `
 You are a financial research assistant.
 
-Use only the provided context to answer.
+Use ONLY the provided context to answer.
 
 Context:
 ${context}
 
 Question:
 ${question}
-`
+`;
 
-  const response = await model.generateContent(prompt)
+  // correct call for @google/genai
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt
+  });
 
   return {
-    answer: response.response.text(),
+    answer: response.text,
     sources: results
-  }
+  };
 }

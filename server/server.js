@@ -3,33 +3,33 @@ import multer from "multer"
 import cors from "cors"
 import { createRequire } from "module"
 
-const require = createRequire(import.meta.url)
-const pdfParse = require("pdf-parse")
-console.log("pdfParse:", pdfParse)
-
 import { chunkText } from "./chunker.js"
 import { embedText } from "./embeddings.js"
-import { answerQuestion } from "./rag.js"
 import { db } from "./mongodb.js"
+import { handleChat } from "./chat.js"
 
-
-console.log(await embedText("hello world"));
-
+const require = createRequire(import.meta.url)
+const pdfParse = require("pdf-parse")
 
 const app = express()
 
 app.use(cors())
 app.use(express.json())
+
 app.get("/", (req, res) => {
   res.json({ status: "server running" })
 })
 
-// ensure file is stored in memory so req.file.buffer exists
-const upload = multer({ storage: multer.memoryStorage() })
+/*
+CHAT ENDPOINT (RAG)
+*/
+app.post("/chat", handleChat)
 
 /*
-UPLOAD DOCUMENT
+FILE UPLOAD
 */
+const upload = multer({ storage: multer.memoryStorage() })
+
 app.post("/upload", upload.single("files"), async (req, res) => {
   try {
 
@@ -45,15 +45,17 @@ app.post("/upload", upload.single("files"), async (req, res) => {
     const text = data.text
 
     const chunks = chunkText(text)
+    
 
-    // DEBUG: verify chunking worked
-console.log("Total chunks:", chunks.length)
+    console.log("Total chunks:", chunks.length)
 
-if (chunks.length > 0) {
-  console.log("First chunk preview:", chunks[0].slice(0, 200))
-}
+    if (chunks.length > 0) {
+      console.log("First chunk preview:", chunks[0].slice(0, 200))
+    }
 
-    // run embeddings in parallel (faster)
+    /*
+    EMBED + STORE CHUNKS
+    */
     await Promise.all(
       chunks.map(async (chunk, i) => {
 
@@ -62,7 +64,8 @@ if (chunks.length > 0) {
         await db.collection("chunks").insertOne({
           text: chunk,
           embedding,
-          chunkIndex: i
+          chunkIndex: i,
+          createdAt: new Date()
         })
 
       })
@@ -80,34 +83,6 @@ if (chunks.length > 0) {
     res.status(500).json({
       error: "Failed to process document"
     })
-
-  }
-})
-
-/*
-ASK QUESTION
-*/
-app.post("/ask", async (req, res) => {
-  try {
-
-    const { question } = req.body
-
-    if (!question) {
-      return res.status(400).json({ error: "Question required" })
-    }
-
-    const result = await answerQuestion(question)
-
-    res.json(result)
-
-  } catch (err) {
-
-    console.error(err)
-
-    res.status(500).json({
-      error: "Failed to answer question"
-    })
-
   }
 })
 

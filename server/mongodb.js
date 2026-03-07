@@ -13,4 +13,5 @@ await client.connect()
 
 console.log("MongoDB connected")
 
+//DB name
 export const db = client.db("ragDB")
