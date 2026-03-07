@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useDropzone } from "react-dropzone"
 
 type UploadedDocument = {
@@ -6,6 +6,10 @@ type UploadedDocument = {
   documentId: string
   filename: string
   chunks: number
+}
+
+type FileUploadProps = {
+  onSessionUpdate?: (payload: { sessionId: string; uploadedDocs: UploadedDocument[] }) => void
 }
 
 function formatBytes(bytes: number) {
@@ -25,7 +29,7 @@ function makeSessionId() {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5050"
 
-export default function FileUpload() {
+export default function FileUpload({ onSessionUpdate }: FileUploadProps) {
   const [sessionId] = useState(() => makeSessionId())
   const [queuedFiles, setQueuedFiles] = useState<File[]>([])
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDocument[]>([])
@@ -43,6 +47,10 @@ export default function FileUpload() {
     },
     multiple: true
   })
+
+  useEffect(() => {
+    onSessionUpdate?.({ sessionId, uploadedDocs })
+  }, [sessionId, uploadedDocs])
 
   async function submitFiles() {
     if (queuedFiles.length === 0 || isUploading) return

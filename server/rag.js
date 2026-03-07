@@ -82,17 +82,16 @@ Vector Search
 async function runVectorSearch(questionEmbedding, options) {
   const filter = buildFilter(options)
 
-  return db
-    .collection(CHUNKS_COLLECTION)
-    .aggregate([
+  const run = (vectorFilter, limit = options.limit) => (
+    db.collection(CHUNKS_COLLECTION).aggregate([
       {
         $vectorSearch: {
           index: VECTOR_INDEX_NAME,
           path: VECTOR_PATH,
           queryVector: questionEmbedding,
           numCandidates: 120,
-          limit: options.limit,
-          ...(filter ? { filter } : {})
+          limit,
+          ...(vectorFilter ? { filter: vectorFilter } : {})
         }
       },
       {
@@ -106,8 +105,39 @@ async function runVectorSearch(questionEmbedding, options) {
           vectorScore: { $meta: "vectorSearchScore" }
         }
       }
-    ])
-    .toArray()
+    ]).toArray()
+  )
+
+  try {
+    const filteredResults = await run(filter)
+    if (filteredResults.length > 0 || !filter) {
+      return filteredResults
+    }
+
+    // Fallback while filter fields are not yet available in vector index.
+    const fallbackLimit = Math.max(options.limit * 20, 60)
+    const unfilteredResults = await run(null, fallbackLimit)
+    return unfilteredResults.filter((doc) => {
+      if (options.sessionId && doc.sessionId !== options.sessionId) return false
+      if (options.documentId && doc.documentId !== options.documentId) return false
+      return true
+    })
+  } catch (error) {
+    if (!filter) throw error
+
+    // Fallback for vector index filter misconfiguration/index lag.
+    const message = String(error?.message || "").toLowerCase()
+    const isFilterIssue = message.includes("filter") || message.includes("path")
+    if (!isFilterIssue) throw error
+
+    const fallbackLimit = Math.max(options.limit * 20, 60)
+    const unfilteredResults = await run(null, fallbackLimit)
+    return unfilteredResults.filter((doc) => {
+      if (options.sessionId && doc.sessionId !== options.sessionId) return false
+      if (options.documentId && doc.documentId !== options.documentId) return false
+      return true
+    })
+  }
 }
 
 /*
@@ -164,6 +194,26 @@ async function runTextSearch(question, options) {
   }
 }
 
+async function runSessionFallback(options) {
+  const filter = buildFilter(options)
+  if (!filter) return []
+
+  return db
+    .collection(CHUNKS_COLLECTION)
+    .find(filter)
+    .sort({ createdAt: -1, chunkIndex: 1 })
+    .limit(Math.max(options.limit * 4, 20))
+    .project({
+      text: 1,
+      chunkIndex: 1,
+      documentId: 1,
+      sessionId: 1,
+      filename: 1,
+      sourceType: 1
+    })
+    .toArray()
+}
+
 /*
 --------------------------------
 Hybrid Retrieval
@@ -172,11 +222,17 @@ Hybrid Retrieval
 async function retrieveChunks(question, questionEmbedding, options) {
   const vectorResults = await runVectorSearch(questionEmbedding, options)
 
-  if (!options.hybrid) return vectorResults
+  if (!options.hybrid) {
+    if (vectorResults.length > 0) return vectorResults
+    return runSessionFallback(options)
+  }
 
   const textResults = await runTextSearch(question, options)
+  const fused = reciprocalRankFusion(vectorResults, textResults, options.limit)
+  if (fused.length > 0) return fused
 
-  return reciprocalRankFusion(vectorResults, textResults, options.limit)
+  // For broad prompts like "summarize uploaded documents", fall back to session chunks.
+  return runSessionFallback(options)
 }
 
 /*

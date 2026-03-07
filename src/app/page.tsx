@@ -25,6 +25,19 @@ import {
   Play,
 } from "lucide-react"
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5050"
+
+type AskSource = {
+  documentId?: string
+  filename?: string
+  chunkIndex?: number
+}
+
+type AskResponse = {
+  answer: string
+  sources: AskSource[]
+}
+
 function ThemeToggle() {
   const { theme, setTheme } = useTheme()
   return (
@@ -49,15 +62,52 @@ const TechStackBadge = ({ label, icon: Icon }: { label: string; icon: ReactNode 
 export default function FinVoiceLanding() {
   const [selectedExample, setSelectedExample] = useState(0)
   const [promptInput, setPromptInput] = useState("")
-  const [queuedPrompt, setQueuedPrompt] = useState("")
+  const [sessionId, setSessionId] = useState("")
+  const [uploadedCount, setUploadedCount] = useState(0)
+  const [isAsking, setIsAsking] = useState(false)
+  const [askError, setAskError] = useState<string | null>(null)
+  const [askResponse, setAskResponse] = useState<AskResponse | null>(null)
 
-  function handlePromptSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handlePromptSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const trimmedPrompt = promptInput.trim()
     if (!trimmedPrompt) return
+    if (!sessionId || uploadedCount === 0) {
+      setAskError("Upload at least one document in this session before asking a question.")
+      return
+    }
 
-    // This is intentionally local for now. Next step is wiring this to Gemini API.
-    setQueuedPrompt(trimmedPrompt)
+    setIsAsking(true)
+    setAskError(null)
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/ask`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          question: trimmedPrompt,
+          sessionId,
+          hybrid: true,
+          limit: 5
+        })
+      })
+
+      const payload = await response.json()
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to get answer")
+      }
+
+      setAskResponse({
+        answer: payload.answer || "",
+        sources: Array.isArray(payload.sources) ? payload.sources : []
+      })
+    } catch (error) {
+      setAskError(error instanceof Error ? error.message : "Failed to get answer")
+    } finally {
+      setIsAsking(false)
+    }
   }
 
   const examples = [
@@ -148,7 +198,12 @@ export default function FinVoiceLanding() {
             <div className="max-w-3xl mx-auto mb-8 space-y-4">
               <div className="rounded-2xl border border-border/50 bg-card/40 p-3 text-left outline-accent">
                 <p className="mb-2 text-sm font-medium">Upload financial documents for context</p>
-                <FileUpload />
+                <FileUpload
+                  onSessionUpdate={({ sessionId: nextSessionId, uploadedDocs }) => {
+                    setSessionId(nextSessionId)
+                    setUploadedCount(uploadedDocs.length)
+                  }}
+                />
               </div>
               <form onSubmit={handlePromptSubmit} className="flex flex-col sm:flex-row gap-3">
                 <input
@@ -159,13 +214,33 @@ export default function FinVoiceLanding() {
                   className="h-14 flex-1 rounded-md border border-border bg-secondary/20 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 outline-input"
                 />
                 <Button type="submit" size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
-                  Queue Prompt
+                  {isAsking ? "Asking..." : "Ask Gemini"}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </form>
               <p className="text-xs text-muted-foreground text-left sm:text-center">
-                {queuedPrompt ? `Queued prompt: "${queuedPrompt}"` : "Prompt capture is ready. Gemini API request wiring is next."}
+                {askError
+                  ? askError
+                  : uploadedCount > 0
+                    ? `Session ready (${uploadedCount} uploaded document${uploadedCount > 1 ? "s" : ""}).`
+                    : "Upload documents to activate RAG-backed question answering."}
               </p>
+              {askResponse ? (
+                <div className="rounded-xl border border-border/60 bg-secondary/25 p-4 text-left">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Gemini Answer</p>
+                  <p className="text-sm leading-relaxed mb-3">{askResponse.answer}</p>
+                  {askResponse.sources.length > 0 ? (
+                    <div className="space-y-1">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Citations</p>
+                      {askResponse.sources.slice(0, 5).map((source, idx) => (
+                        <p key={`${source.documentId || "doc"}-${idx}`} className="text-xs text-muted-foreground">
+                          [{idx + 1}] {source.filename || "unknown"} (chunk {source.chunkIndex ?? "n/a"})
+                        </p>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
             <div className="flex flex-wrap justify-center gap-2">
               <TechStackBadge label="MongoDB Atlas" icon={<Database className="h-3.5 w-3.5 text-primary" />} />

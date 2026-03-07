@@ -11,7 +11,7 @@ import {
 } from "../search-indexes.js"
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
-dotenv.config({ path: path.resolve(dirname, "../../.env") })
+dotenv.config({ path: [path.resolve(dirname, "../.env"), path.resolve(dirname, "../../.env")] })
 
 async function upsertSearchIndex(db, { name, definition, type }) {
   const existing = await db.command({
@@ -79,7 +79,11 @@ async function main() {
           path: VECTOR_PATH,
           numDimensions,
           similarity: "cosine"
-        }
+        },
+        { type: "filter", path: "sessionId" },
+        { type: "filter", path: "documentId" },
+        { type: "filter", path: "filename" },
+        { type: "filter", path: "sourceType" }
       ]
     }
 
