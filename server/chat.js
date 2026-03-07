@@ -12,14 +12,8 @@ export async function handleChat(req, res) {
 
     console.log("User question:", question)
 
-    /*
-    Call RAG pipeline
-    */
     const result = await answerQuestion(question)
 
-    /*
-    Return answer + sources
-    */
     res.json({
       answer: result.answer,
       sources: result.sources.map((s) => ({

@@ -8,6 +8,7 @@ import {
   VECTOR_PATH
 } from "./search-indexes.js"
 
+
 /*
 --------------------------------
 Gemini Client
