@@ -2,11 +2,12 @@ import express from "express"
 import multer from "multer"
 import cors from "cors"
 import { createRequire } from "module"
+import { randomUUID } from "crypto"
 
 import { chunkText } from "./chunker.js"
 import { embedText } from "./embeddings.js"
 import { db } from "./mongodb.js"
-import { handleChat } from "./chat.js"
+import { CHUNKS_COLLECTION } from "./search-indexes.js"
 
 const require = createRequire(import.meta.url)
 const pdfParse = require("pdf-parse")
@@ -15,74 +16,137 @@ const app = express()
 
 app.use(cors())
 app.use(express.json())
-
-app.get("/", (req, res) => {
+app.get("/", (_req, res) => {
   res.json({ status: "server running" })
 })
 
-/*
-CHAT ENDPOINT (RAG)
-*/
-app.post("/chat", handleChat)
-
-/*
-FILE UPLOAD
-*/
 const upload = multer({ storage: multer.memoryStorage() })
 
-app.post("/upload", upload.single("files"), async (req, res) => {
+app.post("/upload", upload.array("files"), async (req, res) => {
   try {
-
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" })
+    const files = req.files
+    if (!Array.isArray(files) || files.length === 0) {
+      return res.status(400).json({ error: "No files uploaded" })
     }
 
-    const buffer = req.file.buffer
+    const sessionId = typeof req.body?.sessionId === "string" && req.body.sessionId.trim()
+      ? req.body.sessionId.trim()
+      : randomUUID()
+    const sourceType = typeof req.body?.sourceType === "string" && req.body.sourceType.trim()
+      ? req.body.sourceType.trim()
+      : "uploaded_file"
+    const uploadedAt = new Date()
+    const documents = []
+    const uploadedFiles = []
 
-    const parser = new pdfParse.PDFParse({ data: buffer })
-    const data = await parser.getText()
+    for (const file of files) {
+      const documentId = randomUUID()
+      let extractedText = ""
+      if (file.mimetype === "text/plain") {
+        extractedText = file.buffer.toString("utf-8")
+      } else {
+        const parser = new pdfParse.PDFParse({ data: file.buffer })
+        const parsed = await parser.getText()
+        extractedText = parsed.text || ""
+      }
 
-    const text = data.text
+      const chunks = chunkText(extractedText)
 
-    const chunks = chunkText(text)
-    
-
-    console.log("Total chunks:", chunks.length)
-
-    if (chunks.length > 0) {
-      console.log("First chunk preview:", chunks[0].slice(0, 200))
-    }
-
-    /*
-    EMBED + STORE CHUNKS
-    */
-    await Promise.all(
-      chunks.map(async (chunk, i) => {
-
-        const embedding = await embedText(chunk)
-
-        await db.collection("chunks").insertOne({
-          text: chunk,
-          embedding,
-          chunkIndex: i,
-          createdAt: new Date()
+      const chunkDocs = await Promise.all(
+        chunks.map(async (chunk, chunkIndex) => {
+          const embedding = await embedText(chunk)
+          return {
+            sessionId,
+            documentId,
+            filename: file.originalname || "uploaded-file.pdf",
+            sourceType,
+            page: null,
+            chunkIndex,
+            text: chunk,
+            embedding,
+            embeddingModel: "gemini-embedding-001",
+            createdAt: uploadedAt
+          }
         })
+      )
 
+      documents.push(...chunkDocs)
+      uploadedFiles.push({
+        sessionId,
+        documentId,
+        filename: file.originalname || "uploaded-file.pdf",
+        chunks: chunkDocs.length
       })
-    )
+    }
+
+    if (documents.length > 0) {
+      await db.collection(CHUNKS_COLLECTION).insertMany(documents, { ordered: false })
+    }
 
     res.json({
-      message: "Document indexed",
-      chunks: chunks.length
+      message: "Files indexed",
+      sessionId,
+      files: uploadedFiles,
+      totalChunks: documents.length
     })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: "Failed to process uploaded files" })
+  }
+})
 
-  } catch (err) {
+app.delete("/documents/:documentId", async (req, res) => {
+  try {
+    const documentId = req.params.documentId
+    if (!documentId) {
+      return res.status(400).json({ error: "documentId is required" })
+    }
 
-    console.error(err)
+    const sessionId = typeof req.body?.sessionId === "string" && req.body.sessionId.trim()
+      ? req.body.sessionId.trim()
+      : null
+    const filter = sessionId ? { documentId, sessionId } : { documentId }
 
-    res.status(500).json({
-      error: "Failed to process document"
+    const result = await db.collection(CHUNKS_COLLECTION).deleteMany(filter)
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: "No chunks found for that document" })
+    }
+
+    res.json({
+      message: "Document removed from session",
+      documentId,
+      sessionId,
+      deletedChunks: result.deletedCount
     })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: "Failed to remove document" })
+  }
+})
+
+app.post("/ask", async (req, res) => {
+  try {
+    const { question, documentId, sessionId, hybrid, limit } = req.body
+    if (!question) {
+      return res.status(400).json({ error: "Question required" })
+    }
+
+    const useHybrid = hybrid === undefined ? true : hybrid === true || hybrid === "true"
+    const resultLimit = Math.max(1, Math.min(Number(limit) || 5, 10))
+    const scopedDocumentId = typeof documentId === "string" && documentId.trim() ? documentId.trim() : null
+    const scopedSessionId = typeof sessionId === "string" && sessionId.trim() ? sessionId.trim() : null
+
+    const result = await answerQuestion(question, {
+      documentId: scopedDocumentId,
+      sessionId: scopedSessionId,
+      hybrid: useHybrid,
+      limit: resultLimit
+    })
+    res.json(result)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: "Failed to answer question" })
   }
 })
 

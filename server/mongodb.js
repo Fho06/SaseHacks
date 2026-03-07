@@ -1,7 +1,10 @@
 import { MongoClient } from "mongodb"
 import dotenv from "dotenv"
+import path from "path"
+import { fileURLToPath } from "url"
 
-dotenv.config()
+const dirname = path.dirname(fileURLToPath(import.meta.url))
+dotenv.config({ path: path.resolve(dirname, "../.env") })
 
 const uri = process.env.MONGODB_URI
 
@@ -13,5 +16,4 @@ await client.connect()
 
 console.log("MongoDB connected")
 
-//DB name
 export const db = client.db("ragDB")
