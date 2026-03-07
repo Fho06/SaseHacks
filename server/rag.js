@@ -276,7 +276,12 @@ export async function answerQuestion(question, options = {}) {
 You are a financial research assistant.
 
 Use ONLY the provided context to answer the question.
-Cite supporting snippets inline using [1], [2], etc.
+Write in clear, human-like prose.
+Do not include chunk markers like [1], [2], etc.
+Do not mention that context was provided.
+Do not output markdown.
+Do not use asterisks, bullet symbols, or numbered lists.
+Use complete grammatical sentences and standard punctuation.
 
 Context:
 ${context}

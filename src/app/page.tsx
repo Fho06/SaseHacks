@@ -38,6 +38,23 @@ type AskResponse = {
   sources: AskSource[]
 }
 
+function formatAnswerText(raw: string) {
+  return raw
+    .replace(/\[\d+\]/g, "")
+    .replace(/\*\*/g, "")
+    .replace(/(^|\s)\*(?=\S)/g, "$1")
+    .replace(/[•·]/g, "")
+    .replace(/\s+,/g, ",")
+    .replace(/\s+\./g, ".")
+    .replace(/\s+:/g, ":")
+    .replace(/\s+;/g, ";")
+    .replace(/\s+([!?])/g, "$1")
+    .replace(/,\s*,+/g, ", ")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+}
+
 function ThemeToggle() {
   const { theme, setTheme } = useTheme()
   return (
@@ -100,7 +117,7 @@ export default function FinVoiceLanding() {
       }
 
       setAskResponse({
-        answer: payload.answer || "",
+        answer: formatAnswerText(payload.answer || ""),
         sources: Array.isArray(payload.sources) ? payload.sources : []
       })
     } catch (error) {
@@ -230,14 +247,18 @@ export default function FinVoiceLanding() {
                   <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Gemini Answer</p>
                   <p className="text-sm leading-relaxed mb-3">{askResponse.answer}</p>
                   {askResponse.sources.length > 0 ? (
-                    <div className="space-y-1">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Citations</p>
-                      {askResponse.sources.slice(0, 5).map((source, idx) => (
-                        <p key={`${source.documentId || "doc"}-${idx}`} className="text-xs text-muted-foreground">
-                          [{idx + 1}] {source.filename || "unknown"} (chunk {source.chunkIndex ?? "n/a"})
-                        </p>
-                      ))}
-                    </div>
+                    <details className="rounded-md border border-border/60 bg-background/40 p-2">
+                      <summary className="cursor-pointer text-xs uppercase tracking-wide text-muted-foreground">
+                        View Citations ({askResponse.sources.length})
+                      </summary>
+                      <div className="space-y-1 pt-2">
+                        {askResponse.sources.slice(0, 8).map((source, idx) => (
+                          <p key={`${source.documentId || "doc"}-${idx}`} className="text-xs text-muted-foreground">
+                            [{idx + 1}] {source.filename || "unknown"} (chunk {source.chunkIndex ?? "n/a"})
+                          </p>
+                        ))}
+                      </div>
+                    </details>
                   ) : null}
                 </div>
               ) : null}
