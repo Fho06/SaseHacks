@@ -1,37 +1,11 @@
-import FileUpload from "./components/FileUpload"
-import ChatBox from "./components/ChatBox"
-import { useState } from "react"
-
-interface Answer {
-  answer: string
-  sources: any[]
-}
+import FinVoiceLanding from "@/app/page"
+import { ThemeProvider } from "@/components/theme-provider"
 
 function App() {
-
-  const [answer, setAnswer] = useState<Answer | null>(null)
-
   return (
-
-    <div>
-
-      <h1>Financial Document Copilot</h1>
-
-      <FileUpload />
-
-      <ChatBox setAnswer={setAnswer} />
-
-      {answer && (
-        <div>
-
-          <h2>Answer</h2>
-
-          <p>{answer.answer}</p>
-
-        </div>
-      )}
-
-    </div>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+      <FinVoiceLanding />
+    </ThemeProvider>
   )
 }
 
