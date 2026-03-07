@@ -5,11 +5,16 @@ import { createRequire } from "module"
 
 const require = createRequire(import.meta.url)
 const pdfParse = require("pdf-parse")
+console.log("pdfParse:", pdfParse)
 
 import { chunkText } from "./chunker.js"
 import { embedText } from "./embeddings.js"
 import { answerQuestion } from "./rag.js"
 import { db } from "./mongodb.js"
+
+
+console.log(await embedText("hello world"));
+
 
 const app = express()
 
@@ -25,7 +30,7 @@ const upload = multer({ storage: multer.memoryStorage() })
 /*
 UPLOAD DOCUMENT
 */
-app.post("/upload", upload.single("file"), async (req, res) => {
+app.post("/upload", upload.single("files"), async (req, res) => {
   try {
 
     if (!req.file) {
@@ -34,11 +39,19 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 
     const buffer = req.file.buffer
 
-    const data = await pdfParse(buffer)
+    const parser = new pdfParse.PDFParse({ data: buffer })
+    const data = await parser.getText()
 
     const text = data.text
 
     const chunks = chunkText(text)
+
+    // DEBUG: verify chunking worked
+console.log("Total chunks:", chunks.length)
+
+if (chunks.length > 0) {
+  console.log("First chunk preview:", chunks[0].slice(0, 200))
+}
 
     // run embeddings in parallel (faster)
     await Promise.all(
