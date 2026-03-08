@@ -5,7 +5,7 @@ Repository root: `C:\Users\Owner\.vscode\projects\Hackathons\SASEHACKS26\SaseHac
 
 ## 1. Project Summary
 
-FinVoice AI is a finance-document intelligence app with authenticated upload, retrieval-augmented Q and A, AI summaries, optional voice playback, presentation generation, and a newly added portfolio analysis workflow for public equities.
+FinVoice AI is a finance-document intelligence app with authenticated upload, retrieval-augmented Q and A, AI summaries, optional voice playback, presentation generation, and a newly added stock analysis workflow for public equities.
 
 The current repository is split into:
 - A Vite + React + TypeScript frontend in `src`
@@ -15,12 +15,12 @@ The current repository is split into:
 
 ## 2. What Changed Recently
 
-The latest changes introduce a full portfolio analysis slice across frontend, backend, persistence, and tests.
+The latest changes introduce a full stock analysis slice across frontend, backend, persistence, and tests.
 
 ### New frontend additions
 
 - `src/components/portfolio/PortfolioAnalysisTab.tsx`
-  New dedicated UI for portfolio/company assessment with:
+  New dedicated UI for stock/company assessment with:
   - Query input by ticker or company name
   - Overall score and verdict rendering
   - Category scorecards for Growth, Financial Health, News Outlook, and Stock Value
@@ -35,7 +35,7 @@ The latest changes introduce a full portfolio analysis slice across frontend, ba
   - `GET /portfolio/history`
 
 - `src/app/page.tsx`
-  Main landing page now includes a `Portfolio Analysis` navigation action and tab switch into `PortfolioAnalysisTab`.
+  Main landing page now includes a Stock Analysis tab switch into `PortfolioAnalysisTab`.
 
 ### New backend additions
 
@@ -49,22 +49,27 @@ The latest changes introduce a full portfolio analysis slice across frontend, ba
   - `news-discovery.js`: multi-provider news discovery, ranking, dedupe
   - `article-extractor.js`: lightweight article text extraction
   - `sec-data.js`: SEC filings and company facts snapshot
-  - `market-data.js`: Yahoo quote snapshot
+  - `market-data.js`: market data via primary provider config with fallback providers
   - `peer-valuation.js`: peer P/E comparison using static peer map
   - `scoring.js`: deterministic scoring formulas and verdict bands
   - `validation.js`: input/payload normalization and guardrails
   - `prompt.js`: strict JSON prompt template
   - `questions.js`: canonical question sets
-  - `cache.js`: in-memory TTL cache helpers
+  - `cache.js`: Redis/Upstash-backed cache with in-memory TTL fallback
   - `collections.js`: portfolio collection names
   - `config.js`: portfolio provider/cache configuration
 
 ### New tests and scripts
 
 - New backend tests in `server/tests`:
+  - `article-extractor.test.js`
   - `auth-middleware.test.js`
+  - `model-json.test.js`
+  - `portfolio-config.test.js`
   - `provider-fallbacks.test.js`
   - `scoring.test.js`
+  - `source-compliance.test.js`
+  - `stock-value-evidence.test.js`
   - `validation.test.js`
 
 - `package.json` (root) now includes:
@@ -85,9 +90,9 @@ The latest changes introduce a full portfolio analysis slice across frontend, ba
 6. User can listen to answers through ElevenLabs with browser speech fallback.
 7. User can regenerate summaries and generate slide decks.
 
-### 3.2 Portfolio analysis workflow (new)
+### 3.2 Stock analysis workflow (new)
 
-1. Authenticated user opens Portfolio Analysis tab from landing page.
+1. Authenticated user opens Stock Analysis tab from landing page.
 2. User submits company query (ticker or company name).
 3. Backend resolves company identity and gathers evidence:
    - News sources
@@ -112,12 +117,12 @@ The latest changes introduce a full portfolio analysis slice across frontend, ba
 ### Major frontend modules
 
 - `src/app/page.tsx`
-  Landing page, upload and ask flow, conversation mode entry, summary display, and tab switch to portfolio analysis.
+  Landing page, upload and ask flow, conversation mode entry, summary display, and tab switch to stock analysis.
 
-- `src/components/DocumentChatWorkspace.tsx`
+- `src/components/documents/DocumentChatWorkspace.tsx`
   Conversation workspace with document selection and follow-up Q and A.
 
-- `src/components/FileUpload.tsx`
+- `src/components/documents/FileUpload.tsx`
   Upload handling, session-level document list, and delete flow.
 
 - `src/components/portfolio/PortfolioAnalysisTab.tsx`
@@ -149,7 +154,7 @@ Primary API is implemented in `server/server.js`.
 - `POST /chat` (not auth-scoped in the same way as `/ask`)
 - `/presentation/*` routes
 
-### New portfolio routes (all auth required)
+### New stock-analysis routes (all auth required)
 
 - `POST /portfolio/analyze`
   - Validates input (`query` required, max 120 chars)
@@ -168,7 +173,7 @@ Primary API is implemented in `server/server.js`.
 - `GET /portfolio/history`
   - Returns most recent analysis history items (up to 25)
 
-## 6. Portfolio Analysis Pipeline Details
+## 6. Stock Analysis Pipeline Details
 
 `server/portfolio/analyzer.js` orchestrates the following steps:
 
@@ -184,7 +189,7 @@ Primary API is implemented in `server/server.js`.
    - Latest 10-K, 10-Q, and optional 8-K signal
    - Revenue, net income, operating cash flow, long-term debt series
 5. Fetch market snapshot:
-   - Yahoo quote valuation fields (price, P/E, price/book, price/sales, 52-week range, market cap)
+   - Primary market provider fields (configured by env) with Yahoo/Stooq-derived fallback coverage where needed
 6. Fetch peer valuation:
    - Static peer map and median trailing P/E comparison
 7. Build evidence bundle and call Gemini (`gemini-2.5-flash`) with strict JSON schema prompt.
@@ -201,8 +206,8 @@ Primary API is implemented in `server/server.js`.
 
 ### Caching behavior
 
-- News, SEC snapshot, market snapshot, and peer valuation lookups are wrapped in an in-memory TTL cache.
-- Cache is process-local and reset on server restart.
+- News, SEC snapshot, market snapshot, and peer valuation lookups use Redis/Upstash cache when configured.
+- In-memory TTL cache remains as fallback and is process-local (resets on restart).
 
 ## 7. Data Model and Persistence
 
@@ -260,6 +265,16 @@ Primary API is implemented in `server/server.js`.
 - `SEC_USER_AGENT`
 - `PORTFOLIO_CACHE_TTL_MS` (optional numeric override)
 - `PORTFOLIO_NEWS_LIMIT` (optional numeric override)
+- `REDIS_URL` (optional)
+- `UPSTASH_REDIS_REST_URL` (optional)
+- `UPSTASH_REDIS_REST_TOKEN` (optional)
+- `PORTFOLIO_FULLTEXT_ALLOWED_DOMAINS` (optional comma-separated allowlist)
+- `PORTFOLIO_MAX_SNIPPET_CHARS` (optional)
+- `PORTFOLIO_MAX_EXTRACTED_CHARS` (optional)
+- `PORTFOLIO_ROBOTS_CACHE_TTL_MS` (optional)
+- `PORTFOLIO_SOURCE_RATE_LIMIT_WINDOW_MS` (optional)
+- `PORTFOLIO_SOURCE_RATE_LIMIT_MAX_REQUESTS` (optional)
+- `PORTFOLIO_ROBOTS_FAIL_CLOSED` (optional boolean)
 
 ### Security note
 
@@ -290,7 +305,7 @@ From `server` directory:
 
 ### Command health
 
-- `npm test`: passes (7 tests)
+- `npm test`: passes (9 tests)
 - `npm run build`: passes
 - `npm run typecheck`: fails
   - `src/components/ui/sidebar.tsx` type-only import issue
@@ -312,7 +327,7 @@ From `server` directory:
 - Runtime structure still mixes Next-style folder naming with a Vite runtime path.
 - `src/App.tsx` uses `ThemeProvider defaultTheme="dark"` while `src/app/layout.tsx` is configured for light and is not the live runtime shell.
 - `POST /chat` remains behaviorally separate from authenticated scoped `/ask`.
-- Portfolio cache is in-memory only (no shared/distributed cache).
+- Portfolio cache depends on runtime configuration. Redis/Upstash is used when configured, otherwise fallback is in-memory.
 - Provider configuration warning checks do not fully enforce all provider keys at runtime.
 - Build currently succeeds while typecheck/lint fail, so CI signal is incomplete.
 
