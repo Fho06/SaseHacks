@@ -5,15 +5,18 @@ import FileUpload, { type UploadedDocument } from "@/components/documents/FileUp
 import DocumentChatWorkspace from "@/components/documents/DocumentChatWorkspace"
 import { getAuthHeader } from "@/lib/api-auth"
 import { useAuth } from "@/providers/AuthProvider"
-import Navbar from "@/components/landing/Navbar"
-import ProblemSection from "@/components/landing/ProblemSection"
-import HeroSection from "@/components/landing/HeroSection"
-import FeaturesSection from "@/components/landing/FeatureSection"
-import HowItWorksSection from "@/components/landing/HowItWorksSection"
-import UseCasesSection from "@/components/landing/UseCasesSection"
-import TechStackSection from "@/components/landing/TechStackSection"
-import TrustSection from "@/components/landing/TrustSection"
-import Footer from "@/components/landing/Footer"
+import {
+  Navbar,
+  HeroSection,
+  ProblemSection,
+  FeaturesSection,
+  HowItWorksSection,
+  UseCasesSection,
+  TechStackSection,
+  TrustSection,
+  Footer,
+  MeetTeamSection
+} from "@/components/landing"
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5050"
 
@@ -423,6 +426,9 @@ export default function FinVoiceLanding() {
 
       {/* Use Cases */}
       <UseCasesSection />
+
+      {/* Meet Team Section */}
+      <MeetTeamSection />
 
       {/* Tech Stack */}
       <TechStackSection />
