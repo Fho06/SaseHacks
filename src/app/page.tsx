@@ -4,8 +4,8 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "rea
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import FileUpload from "@/components/FileUpload"
-import DeepDiveChat from "@/components/DeepDiveChat"
+import FileUpload, { type UploadedDocument } from "@/components/FileUpload"
+import DocumentChatWorkspace from "@/components/DocumentChatWorkspace"
 import {
   ArrowRight,
   AlertCircle,
@@ -37,6 +37,15 @@ type AskSource = {
 type AskResponse = {
   answer: string
   sources: AskSource[]
+}
+
+type FinancialSummary = {
+  title?: string
+  summary: string
+  keyMetrics?: string[]
+  majorRisks?: string[]
+  managementTone?: string
+  redFlags?: string[]
 }
 
 function formatAnswerText(raw: string) {
@@ -81,11 +90,13 @@ export default function FinVoiceLanding() {
   const [selectedExample, setSelectedExample] = useState(0)
   const [promptInput, setPromptInput] = useState("")
   const [sessionId, setSessionId] = useState("")
+  const [uploadedDocs, setUploadedDocs] = useState<UploadedDocument[]>([])
   const [uploadedCount, setUploadedCount] = useState(0)
   const [isAsking, setIsAsking] = useState(false)
   const [askError, setAskError] = useState<string | null>(null)
   const [askResponse, setAskResponse] = useState<AskResponse | null>(null)
-  const [deepDiveContext, setDeepDiveContext] = useState<{ previousAnswer: string; documentId?: string | null } | null>(null)
+  const [summary, setSummary] = useState<FinancialSummary | null>(null)
+  const [conversationMode, setConversationMode] = useState(false)
   const [ttsEnabled, setTtsEnabled] = useState(true)
   const [ttsLoading, setTtsLoading] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
@@ -296,13 +307,12 @@ export default function FinVoiceLanding() {
     },
   ]
 
-  if (deepDiveContext) {
+  if (conversationMode) {
     return (
-      <DeepDiveChat
-        sessionId={sessionId}
-        documentId={deepDiveContext.documentId || null}
-        previousAnswer={deepDiveContext.previousAnswer}
-        onBack={() => setDeepDiveContext(null)}
+      <DocumentChatWorkspace
+        initialSessionId={sessionId}
+        initialUploadedDocs={uploadedDocs}
+        onBack={() => setConversationMode(false)}
       />
     )
   }
@@ -377,6 +387,7 @@ export default function FinVoiceLanding() {
                 <FileUpload
                   onSessionUpdate={({ sessionId: nextSessionId, uploadedDocs, summaries }) => {
                     setSessionId(nextSessionId)
+                    setUploadedDocs(uploadedDocs)
                     setUploadedCount(uploadedDocs.length)
 
                     if (Array.isArray(summaries) && summaries.length > 0) {
@@ -486,15 +497,12 @@ export default function FinVoiceLanding() {
                         type="button"
                         onClick={() => {
                           stopSpeech()
-                          setDeepDiveContext({
-                            previousAnswer: askResponse.answer,
-                            documentId: askResponse.sources[0]?.documentId || null
-                          })
+                          setConversationMode(true)
                         }}
                         className="rounded-md border border-border/60 bg-background/40 px-2 py-1 text-xs text-foreground transition-colors hover:bg-secondary/40"
-                        title="Open deep dive chat"
+                        title="Open recurring conversation mode"
                       >
-                        Deep Dive
+                        Conversation Mode
                       </button>
                     </div>
                   </div>

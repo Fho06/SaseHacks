@@ -11,7 +11,6 @@ import { CHUNKS_COLLECTION, SUMMARIES_COLLECTION } from "./search-indexes.js"
 import { generateSpeech } from "./tts.js"
 import { handleChat } from "./chat.js"
 import { generateFinancialSummary } from "./summarizer.js"
-import { handleDeepDive } from "./deep-dive.js"
 
 const require = createRequire(import.meta.url)
 const pdfParse = require("pdf-parse")
@@ -40,7 +39,6 @@ app.get("/", (_req, res) => {
   res.json({ status: "server running" })
 })
 app.post("/chat", handleChat)
-app.post("/deep-dive", handleDeepDive)
 
 const upload = multer({ storage: multer.memoryStorage() })
 
