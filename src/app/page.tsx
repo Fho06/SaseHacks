@@ -23,6 +23,7 @@ import {
   Sun,
   Moon,
 } from "lucide-react"
+import PresentationGenerator from "@/components/PresentationGenerator"
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5050"
 
@@ -411,7 +412,6 @@ export default function FinVoiceLanding() {
               <div ref={chatSectionRef} className="scroll-mt-24">
                 <form onSubmit={handlePromptSubmit} className="flex flex-col sm:flex-row gap-3">
                   <input
-                    //ref={chatInputRef} //auto scroll
                     type="text"
                     value={promptInput}
                     onChange={(event) => setPromptInput(event.target.value)}
@@ -491,6 +491,10 @@ export default function FinVoiceLanding() {
 
                   </div>
                 </div>
+              )}
+              
+              {summary && (
+                <PresentationGenerator briefing={summary} />
               )}
               {askResponse ? (
                 <div className="rounded-xl border border-border/60 bg-secondary/25 p-4 text-left">
