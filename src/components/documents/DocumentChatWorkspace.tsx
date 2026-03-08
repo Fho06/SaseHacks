@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
 import { ArrowLeft, FileText, Moon, Play, Send, Square, Sun, Trash2, Volume2, VolumeX } from "lucide-react"
 import { useTheme } from "next-themes"
-import FileUpload, { type UploadedDocument } from "@/components/FileUpload"
+import FileUpload, { type UploadedDocument } from "@/components/documents/FileUpload"
 import { Button } from "@/components/ui/button"
 import { getAuthHeader } from "@/lib/api-auth"
 

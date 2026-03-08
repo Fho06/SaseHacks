@@ -1,4 +1,4 @@
-import { db } from "./mongodb.js"
+import { db } from "../config/mongodb.js"
 import { embedText } from "./embeddings.js"
 import { GoogleGenAI } from "@google/genai"
 import {
@@ -6,7 +6,7 @@ import {
   TEXT_INDEX_NAME,
   VECTOR_INDEX_NAME,
   VECTOR_PATH
-} from "./search-indexes.js"
+} from "../search/search-indexes.js"
 
 
 /*
