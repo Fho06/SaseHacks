@@ -1,46 +1,25 @@
-import type { Metadata } from 'next'
-import { GeistSans } from 'geist/font/sans'
-import { GeistMono } from 'geist/font/mono'
-import { Analytics } from '@vercel/analytics/next'
+import type { ReactNode } from 'react'
 import { ThemeProvider } from 'next-themes'
 import './globals.css'
 
-export const metadata: Metadata = {
-  title: 'FinVoice AI - Voice-Enabled Financial Document Intelligence',
-  description: 'Upload financial documents and ask questions. Get grounded answers with citations and voice playback powered by RAG and Gemini API.',
-  generator: 'v0.app',
-  icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
-  },
+type RootLayoutProps = {
+  children: ReactNode
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+}: RootLayoutProps) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`font-sans antialiased ${GeistSans.variable} ${GeistMono.variable}`}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-          {children}
-        </ThemeProvider>
-        <Analytics />
-      </body>
-    </html>
+    <div className="light font-sans antialiased">
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="light"
+        enableSystem={false}
+        themes={['light', 'dark']}
+        storageKey="finvoice-theme"
+      >
+        {children}
+      </ThemeProvider>
+    </div>
   )
 }

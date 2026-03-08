@@ -5,17 +5,15 @@ import FileUpload, { type UploadedDocument } from "@/components/documents/FileUp
 import DocumentChatWorkspace from "@/components/documents/DocumentChatWorkspace"
 import { getAuthHeader } from "@/lib/api-auth"
 import { useAuth } from "@/providers/AuthProvider"
-import {
-  Navbar,
-  HeroSection,
-  ProblemSection,
-  FeaturesSection,
-  HowItWorksSection,
-  UseCasesSection,
-  TechStackSection,
-  TrustSection,
-  Footer
-} from "@/components/landing"
+import Navbar from "@/components/landing/Navbar"
+import ProblemSection from "@/components/landing/ProblemSection"
+import HeroSection from "@/components/landing/HeroSection"
+import FeaturesSection from "@/components/landing/FeatureSection"
+import HowItWorksSection from "@/components/landing/HowItWorksSection"
+import UseCasesSection from "@/components/landing/UseCasesSection"
+import TechStackSection from "@/components/landing/TechStackSection"
+import TrustSection from "@/components/landing/TrustSection"
+import Footer from "@/components/landing/Footer"
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5050"
 
@@ -55,6 +53,13 @@ function formatAnswerText(raw: string) {
     .replace(/\n{3,}/g, "\n\n")
     .trim()
 }
+
+const TechStackBadge = ({ label, icon: Icon }: { label: string; icon: ReactNode }) => (
+  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary/50 border border-border/50 text-sm text-foreground">
+    {Icon}
+    <span>{label}</span>
+  </div>
+)
 
 export default function FinVoiceLanding() {
   const { user } = useAuth()
