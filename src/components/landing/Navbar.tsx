@@ -60,7 +60,7 @@ export default function Navbar({ onConversation, onStockAnalysis }: NavbarProps)
           <ThemeToggle />
 
           <a
-            href="https://github.com"
+            href="https://github.com/Fho06/SaseHacks"
             className="hidden sm:flex items-center justify-center h-9 w-9 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
             aria-label="GitHub"
           >

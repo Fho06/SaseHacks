@@ -59,7 +59,7 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="https://github.com" className="hover:text-foreground transition-colors">
+                <a href="https://github.com/Fho06/SaseHacks" className="hover:text-foreground transition-colors">
                   GitHub
                 </a>
               </li>
