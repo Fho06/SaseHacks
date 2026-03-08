@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import FileUpload, { type UploadedDocument } from "@/components/FileUpload"
 import DocumentChatWorkspace from "@/components/DocumentChatWorkspace"
+import PortfolioAnalysisTab from "@/components/portfolio/PortfolioAnalysisTab"
 import LoginButton from "@/components/LoginButton"
 import { getAuthHeader } from "@/lib/api-auth"
 import { useAuth } from "@/providers/AuthProvider"
@@ -97,6 +98,7 @@ const TechStackBadge = ({ label, icon: Icon }: { label: string; icon: ReactNode 
 
 export default function FinVoiceLanding() {
   const { user } = useAuth()
+  const [activeTab, setActiveTab] = useState<"documents" | "portfolio">("documents")
   const [promptInput, setPromptInput] = useState("")
   const [sessionId, setSessionId] = useState(() => makeEphemeralSessionId())
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDocument[]>([])
@@ -430,6 +432,10 @@ export default function FinVoiceLanding() {
     )
   }
 
+  if (activeTab === "portfolio") {
+    return <PortfolioAnalysisTab onBack={() => setActiveTab("documents")} />
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Sticky Navbar */}
@@ -468,6 +474,15 @@ export default function FinVoiceLanding() {
             >
               <Github className="h-4 w-4" />
             </a>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="border-border/60"
+              onClick={() => setActiveTab("portfolio")}
+            >
+              Stock Analysis
+            </Button>
             <Button
               type="button"
               size="sm"

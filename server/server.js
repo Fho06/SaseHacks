@@ -13,11 +13,18 @@ import { generateSpeech } from "./tts.js"
 import { handleChat } from "./chat.js"
 import { generateFinancialSummary } from "./summarizer.js"
 import presentationRoutes from "./presentation-routes.js"
+import portfolioRoutes from "./portfolio/routes.js"
+import { validatePortfolioConfigAtStartup } from "./portfolio/config.js"
 
 const require = createRequire(import.meta.url)
 const pdfParse = require("pdf-parse")
 
 const app = express()
+const portfolioConfigWarnings = validatePortfolioConfigAtStartup()
+
+for (const warning of portfolioConfigWarnings) {
+  console.warn(`[portfolio-config] ${warning}`)
+}
 
 function getSpeechErrorMessage(err) {
   const fallback = "Speech generation failed"
@@ -42,6 +49,7 @@ function getSpeechErrorMessage(err) {
 app.use(cors())
 app.use(express.json())
 app.use("/presentation", presentationRoutes)
+app.use("/portfolio", verifyFirebaseAuth, portfolioRoutes)
 app.get("/", (_req, res) => {
   res.json({ status: "server running" })
 })

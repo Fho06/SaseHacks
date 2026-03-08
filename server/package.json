@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "setup:indexes": "node scripts/setup-indexes.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test tests/**/*.test.js"
   },
   "keywords": [],
   "author": "",
@@ -23,6 +23,8 @@
     "multer": "^2.1.1",
     "pdf-parse": "^2.4.5",
     "pptxgenjs": "^4.0.1",
+    "redis": "^5.9.0",
+    "sasehacks": "file:..",
     "sharp": "^0.34.5"
   }
 }
