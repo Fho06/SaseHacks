@@ -1,6 +1,6 @@
 import { auth } from "@/lib/firebase"
 
-export async function getAuthHeader() {
+export async function getAuthHeader(): Promise<Record<string, string>> {
   if (!auth?.currentUser) {
     return {}
   }

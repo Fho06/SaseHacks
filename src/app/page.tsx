@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react"
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -55,7 +55,7 @@ function formatAnswerText(raw: string) {
     .replace(/\[\d+\]/g, "")
     .replace(/\*\*/g, "")
     .replace(/(^|\s)\*(?=\S)/g, "$1")
-    .replace(/[•·]/g, "")
+    .replace(/[\u2022\u00B7]/g, "")
     .replace(/\s+,/g, ",")
     .replace(/\s+\./g, ".")
     .replace(/\s+:/g, ":")
@@ -93,21 +93,36 @@ export default function FinVoiceLanding() {
   const [promptInput, setPromptInput] = useState("")
   const [sessionId, setSessionId] = useState("")
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDocument[]>([])
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [isAsking, setIsAsking] = useState(false)
   const [askError, setAskError] = useState<string | null>(null)
   const [askResponse, setAskResponse] = useState<AskResponse | null>(null)
   const [summary, setSummary] = useState<FinancialSummary | null>(null)
+  const [summaryError, setSummaryError] = useState<string | null>(null)
   const [isResummarizing, setIsResummarizing] = useState(false)
   const [documentId, setDocumentId] = useState<string | null>(null)
+  const [ttsMessage, setTtsMessage] = useState<string | null>(null)
   const uploadedCount = uploadedDocs.length
+  const statusMessage =
+    loadError ||
+    askError ||
+    ttsMessage ||
+    (uploadedCount > 0
+      ? `Session ready (${uploadedCount} uploaded document${uploadedCount > 1 ? "s" : ""}).`
+      : "Upload documents to activate RAG-backed question answering.")
 
   useEffect(() => {
+    const controller = new AbortController()
+    let cancelled = false
+
     async function loadUserDocuments() {
       if (!user) {
         setSessionId("")
         setUploadedDocs([])
         setSummary(null)
+        setSummaryError(null)
         setDocumentId(null)
+        setLoadError(null)
         return
       }
 
@@ -116,24 +131,40 @@ export default function FinVoiceLanding() {
           method: "GET",
           headers: {
             ...(await getAuthHeader())
-          }
+          },
+          signal: controller.signal
         })
+        if (cancelled) return
+
         const payload = await response.json()
         if (!response.ok) {
           throw new Error(payload?.error || "Failed to load documents")
         }
 
         const docs: UploadedDocument[] = Array.isArray(payload?.files) ? payload.files : []
+        if (cancelled) return
+
         setUploadedDocs(docs)
         setSessionId(docs[0]?.sessionId || "")
         setDocumentId(docs[0]?.documentId || null)
         setSummary(docs[0]?.summary || null)
+        setSummaryError(null)
+        setLoadError(null)
       } catch (error) {
-        setAskError(error instanceof Error ? error.message : "Failed to load documents")
+        if (cancelled) return
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return
+        }
+        setLoadError(error instanceof Error ? error.message : "Failed to load documents")
       }
     }
 
     void loadUserDocuments()
+
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
   }, [user])
   const [conversationMode, setConversationMode] = useState(false)
   const [ttsEnabled, setTtsEnabled] = useState(false)
@@ -143,7 +174,7 @@ export default function FinVoiceLanding() {
   const audioUrlRef = useRef<string | null>(null)
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
 
-  function stopSpeech() {
+  const stopSpeech = useCallback(() => {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel()
       utteranceRef.current = null
@@ -159,9 +190,9 @@ export default function FinVoiceLanding() {
       audioUrlRef.current = null
     }
     setIsSpeaking(false)
-  }
+  }, [])
 
-  function speakWithBrowserTts(text: string) {
+  const speakWithBrowserTts = useCallback((text: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) {
       throw new Error("Speech synthesis is unavailable in this browser")
     }
@@ -176,74 +207,79 @@ export default function FinVoiceLanding() {
 
     utteranceRef.current = utterance
     window.speechSynthesis.speak(utterance)
-  }
+  }, [])
 
-  async function speakText(text: string) {
-    const cleaned = text.trim()
-    if (!cleaned || !ttsEnabled) return
+  const speakText = useCallback(
+    async (text: string) => {
+      const cleaned = text.trim()
+      if (!cleaned || !ttsEnabled) return
 
-    stopSpeech()
-    setTtsLoading(true)
+      stopSpeech()
+      setTtsLoading(true)
+      setTtsMessage(null)
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/speech`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ text: cleaned })
-      })
-      if (!response.ok) {
-        let message = "Unable to generate speech"
-        try {
-          const payload = await response.json()
-          if (typeof payload?.error === "string" && payload.error.trim()) {
-            message = payload.error.trim()
-          }
-        } catch {
-          // keep fallback message when body is not JSON
-        }
-        throw new Error(message)
-      }
-
-      const blob = await response.blob()
-      if (!blob.size) {
-        throw new Error("Received empty audio response")
-      }
-      const audioUrl = URL.createObjectURL(blob)
-      const audio = new Audio(audioUrl)
-      audioUrlRef.current = audioUrl
-      audioRef.current = audio
-
-      audio.onended = () => setIsSpeaking(false)
-      audio.onpause = () => setIsSpeaking(false)
-      audio.onplay = () => setIsSpeaking(true)
-
-      await audio.play()
-    } catch (error) {
       try {
-        speakWithBrowserTts(cleaned)
-        const reason = error instanceof Error ? error.message : "ElevenLabs unavailable"
-        setAskError(`ElevenLabs unavailable (${reason}). Using browser voice.`)
-      } catch (fallbackError) {
-        const reason = fallbackError instanceof Error ? fallbackError.message : "Unable to play speech"
-        setAskError(reason)
-        stopSpeech()
+        const response = await fetch(`${API_BASE_URL}/speech`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ text: cleaned })
+        })
+        if (!response.ok) {
+          let message = "Unable to generate speech"
+          try {
+            const payload = await response.json()
+            if (typeof payload?.error === "string" && payload.error.trim()) {
+              message = payload.error.trim()
+            }
+          } catch {
+            // keep fallback message when body is not JSON
+          }
+          throw new Error(message)
+        }
+
+        const blob = await response.blob()
+        if (!blob.size) {
+          throw new Error("Received empty audio response")
+        }
+        const audioUrl = URL.createObjectURL(blob)
+        const audio = new Audio(audioUrl)
+        audioUrlRef.current = audioUrl
+        audioRef.current = audio
+
+        audio.onended = () => setIsSpeaking(false)
+        audio.onpause = () => setIsSpeaking(false)
+        audio.onplay = () => setIsSpeaking(true)
+
+        await audio.play()
+      } catch (error) {
+        try {
+          speakWithBrowserTts(cleaned)
+          const reason = error instanceof Error ? error.message : "ElevenLabs unavailable"
+          setTtsMessage(`ElevenLabs unavailable (${reason}). Using browser voice.`)
+        } catch (fallbackError) {
+          const reason = fallbackError instanceof Error ? fallbackError.message : "Unable to play speech"
+          setTtsMessage(reason)
+          stopSpeech()
+        }
+      } finally {
+        setTtsLoading(false)
       }
-    } finally {
-      setTtsLoading(false)
-    }
-  }
+    },
+    [speakWithBrowserTts, stopSpeech, ttsEnabled]
+  )
 
   useEffect(() => {
     return () => stopSpeech()
-  }, [])
+  }, [stopSpeech])
 
   useEffect(() => {
     if (!ttsEnabled) {
       stopSpeech()
+      setTtsMessage(null)
     }
-  }, [ttsEnabled])
+  }, [ttsEnabled, stopSpeech])
 
   useEffect(() => {
     function isTypingTarget(target: EventTarget | null) {
@@ -284,7 +320,7 @@ export default function FinVoiceLanding() {
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [askResponse?.answer, isSpeaking, ttsEnabled, ttsLoading])
+  }, [askResponse?.answer, isSpeaking, speakText, stopSpeech, ttsEnabled, ttsLoading])
 
   
   async function handlePromptSubmit(event: FormEvent<HTMLFormElement>) {
@@ -334,6 +370,7 @@ export default function FinVoiceLanding() {
 
   async function handleResummarize(documentId: string) {
     setIsResummarizing(true)
+    setSummaryError(null)
 
     try {
       const res = await fetch(`${API_BASE_URL}/resummarize/${documentId}`, {
@@ -347,8 +384,11 @@ export default function FinVoiceLanding() {
       if (!res.ok) throw new Error(data?.error || "Failed to regenerate summary")
 
       setSummary(data)
+      setSummaryError(null)
 
     } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to regenerate summary"
+      setSummaryError(message)
       console.error("Resummarize failed:", err)
     } finally {
       setIsResummarizing(false)
@@ -447,6 +487,7 @@ export default function FinVoiceLanding() {
 
                       if (action === "upload") {
                         setSummary(null)
+                        setSummaryError(null)
                         void handleResummarize(latestDoc.documentId)
                         return
                       }
@@ -454,6 +495,10 @@ export default function FinVoiceLanding() {
 
                     if (Array.isArray(summaries) && summaries.length > 0) {
                       setSummary(summaries[summaries.length - 1])
+                      setSummaryError(null)
+                    } else if (uploadedDocs.length === 0) {
+                      setSummary(null)
+                      setSummaryError(null)
                     }
                   }}
                 />
@@ -474,11 +519,7 @@ export default function FinVoiceLanding() {
                 </form>
               </div>
               <p className="text-xs text-muted-foreground text-left sm:text-center">
-                {askError
-                  ? askError
-                  : uploadedCount > 0
-                    ? `Session ready (${uploadedCount} uploaded document${uploadedCount > 1 ? "s" : ""}).`
-                    : "Upload documents to activate RAG-backed question answering."}
+                {statusMessage}
               </p>
 
               {askResponse ? (
@@ -552,9 +593,23 @@ export default function FinVoiceLanding() {
                   ) : null}
                 </div>
               ) : null}
-              {uploadedCount > 0 && !summary && (
+              {isResummarizing && !summary && (
                 <div className="rounded-xl border border-border/60 bg-secondary/25 p-4 text-sm text-muted-foreground">
                   Generating AI financial briefing...
+                </div>
+              )}
+              {!isResummarizing && summaryError && (
+                <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                  {summaryError}
+                  {documentId ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleResummarize(documentId)}
+                      className="ml-3 rounded-md border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
+                    >
+                      Retry
+                    </button>
+                  ) : null}
                 </div>
               )}
               {summary && (
