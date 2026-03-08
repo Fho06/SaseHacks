@@ -100,7 +100,7 @@ export default function Footer() {
         <div className="border-t border-border/30 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
 
           <p className="text-xs text-muted-foreground text-center md:text-left">
-            (c) 2024 FinVoice AI. Built for financial intelligence. Not investment advice.
+            (c) 2026 FinVoice AI. Built for financial intelligence. Not investment advice.
           </p>
 
           <p className="text-xs text-muted-foreground">

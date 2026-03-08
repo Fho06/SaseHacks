@@ -170,8 +170,8 @@ export default function FileUpload({
         </p>
       </div>
 
-      <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-        <span className="truncate">{showInternalLists ? `Session: ${sessionId}` : "Upload files"}</span>
+      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+        <span className="truncate"></span>
         <button
           type="button"
           onClick={submitFiles}
