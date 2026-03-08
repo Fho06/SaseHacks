@@ -67,6 +67,13 @@ function formatAnswerText(raw: string) {
     .trim()
 }
 
+function makeEphemeralSessionId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID()
+  }
+  return `session-${Date.now()}`
+}
+
 function ThemeToggle() {
   const { theme, setTheme } = useTheme()
   return (
@@ -91,8 +98,9 @@ const TechStackBadge = ({ label, icon: Icon }: { label: string; icon: ReactNode 
 export default function FinVoiceLanding() {
   const { user } = useAuth()
   const [promptInput, setPromptInput] = useState("")
-  const [sessionId, setSessionId] = useState("")
+  const [sessionId, setSessionId] = useState(() => makeEphemeralSessionId())
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDocument[]>([])
+  const [allUserDocs, setAllUserDocs] = useState<UploadedDocument[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
   const [isAsking, setIsAsking] = useState(false)
   const [askError, setAskError] = useState<string | null>(null)
@@ -109,7 +117,28 @@ export default function FinVoiceLanding() {
     ttsMessage ||
     (uploadedCount > 0
       ? `Session ready (${uploadedCount} uploaded document${uploadedCount > 1 ? "s" : ""}).`
+      : allUserDocs.length > 0
+        ? `No files uploaded in this session yet. Your account has ${allUserDocs.length} saved document${allUserDocs.length > 1 ? "s" : ""}.`
       : "Upload documents to activate RAG-backed question answering.")
+
+  const refreshUserDocuments = useCallback(async (signal?: AbortSignal) => {
+    const response = await fetch(`${API_BASE_URL}/documents`, {
+      method: "GET",
+      headers: {
+        ...(await getAuthHeader())
+      },
+      ...(signal ? { signal } : {})
+    })
+
+    const payload = await response.json()
+    if (!response.ok) {
+      throw new Error(payload?.error || "Failed to load documents")
+    }
+
+    const docs: UploadedDocument[] = Array.isArray(payload?.files) ? payload.files : []
+    setAllUserDocs(docs)
+    setLoadError(null)
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -117,8 +146,9 @@ export default function FinVoiceLanding() {
 
     async function loadUserDocuments() {
       if (!user) {
-        setSessionId("")
+        setSessionId(makeEphemeralSessionId())
         setUploadedDocs([])
+        setAllUserDocs([])
         setSummary(null)
         setSummaryError(null)
         setDocumentId(null)
@@ -127,29 +157,7 @@ export default function FinVoiceLanding() {
       }
 
       try {
-        const response = await fetch(`${API_BASE_URL}/documents`, {
-          method: "GET",
-          headers: {
-            ...(await getAuthHeader())
-          },
-          signal: controller.signal
-        })
-        if (cancelled) return
-
-        const payload = await response.json()
-        if (!response.ok) {
-          throw new Error(payload?.error || "Failed to load documents")
-        }
-
-        const docs: UploadedDocument[] = Array.isArray(payload?.files) ? payload.files : []
-        if (cancelled) return
-
-        setUploadedDocs(docs)
-        setSessionId(docs[0]?.sessionId || "")
-        setDocumentId(docs[0]?.documentId || null)
-        setSummary(docs[0]?.summary || null)
-        setSummaryError(null)
-        setLoadError(null)
+        await refreshUserDocuments(controller.signal)
       } catch (error) {
         if (cancelled) return
         if (error instanceof DOMException && error.name === "AbortError") {
@@ -165,7 +173,23 @@ export default function FinVoiceLanding() {
       cancelled = true
       controller.abort()
     }
-  }, [user])
+  }, [refreshUserDocuments, user])
+
+  useEffect(() => {
+    const currentSessionDocs = allUserDocs.filter((doc) => doc.sessionId === sessionId)
+    setUploadedDocs(currentSessionDocs)
+
+    if (currentSessionDocs.length === 0) {
+      setSummary(null)
+      setSummaryError(null)
+      setDocumentId(null)
+      return
+    }
+
+    const latestDoc = currentSessionDocs[currentSessionDocs.length - 1]
+    setDocumentId(latestDoc.documentId)
+    setSummary(latestDoc.summary || null)
+  }, [allUserDocs, sessionId])
   const [conversationMode, setConversationMode] = useState(false)
   const [ttsEnabled, setTtsEnabled] = useState(false)
   const [ttsLoading, setTtsLoading] = useState(false)
@@ -345,7 +369,8 @@ export default function FinVoiceLanding() {
         body: JSON.stringify({
           question: trimmedPrompt,
           hybrid: true,
-          limit: 5
+          limit: 5,
+          sessionId
         })
       })
 
@@ -399,7 +424,7 @@ export default function FinVoiceLanding() {
     return (
       <DocumentChatWorkspace
         initialSessionId={sessionId}
-        initialUploadedDocs={uploadedDocs}
+        initialUploadedDocs={allUserDocs}
         onBack={() => setConversationMode(false)}
       />
     )
@@ -480,6 +505,7 @@ export default function FinVoiceLanding() {
                   onSessionUpdate={({ sessionId: nextSessionId, uploadedDocs, summaries, action }) => {
                     setSessionId(nextSessionId)
                     setUploadedDocs(uploadedDocs)
+                    void refreshUserDocuments().catch(() => undefined)
 
                     if (uploadedDocs.length > 0) {
                       const latestDoc = uploadedDocs[uploadedDocs.length - 1]
