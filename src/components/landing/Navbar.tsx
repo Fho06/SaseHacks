@@ -20,7 +20,12 @@ function ThemeToggle() {
   )
 }
 
-export default function Navbar({ onConversation }: { onConversation: () => void }) {
+type NavbarProps = {
+  onConversation: () => void
+  onStockAnalysis: () => void
+}
+
+export default function Navbar({ onConversation, onStockAnalysis }: NavbarProps) {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -61,6 +66,16 @@ export default function Navbar({ onConversation }: { onConversation: () => void 
           >
             <Github className="h-4 w-4" />
           </a>
+
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="border-border/60"
+            onClick={onStockAnalysis}
+          >
+            Stock Analysis
+          </Button>
 
           <Button
             type="button"

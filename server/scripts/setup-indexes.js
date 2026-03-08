@@ -2,13 +2,13 @@ import dotenv from "dotenv"
 import { MongoClient } from "mongodb"
 import path from "path"
 import { fileURLToPath } from "url"
-import { embedText } from "../embeddings.js"
+import { embedText } from "../services/embeddings.js"
 import {
   CHUNKS_COLLECTION,
   TEXT_INDEX_NAME,
   VECTOR_INDEX_NAME,
   VECTOR_PATH
-} from "../search-indexes.js"
+} from "../search/search-indexes.js"
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: [path.resolve(dirname, "../.env"), path.resolve(dirname, "../../.env")] })

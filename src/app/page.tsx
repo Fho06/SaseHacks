@@ -1,8 +1,9 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react"
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import FileUpload, { type UploadedDocument } from "@/components/documents/FileUpload"
 import DocumentChatWorkspace from "@/components/documents/DocumentChatWorkspace"
+import PortfolioAnalysisTab from "@/components/portfolio/PortfolioAnalysisTab"
 import { getAuthHeader } from "@/lib/api-auth"
 import { useAuth } from "@/providers/AuthProvider"
 import {
@@ -57,15 +58,9 @@ function formatAnswerText(raw: string) {
     .trim()
 }
 
-const TechStackBadge = ({ label, icon: Icon }: { label: string; icon: ReactNode }) => (
-  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary/50 border border-border/50 text-sm text-foreground">
-    {Icon}
-    <span>{label}</span>
-  </div>
-)
-
 export default function FinVoiceLanding() {
   const { user } = useAuth()
+  const [activeTab, setActiveTab] = useState<"documents" | "portfolio">("documents")
   const [promptInput, setPromptInput] = useState("")
   const [sessionId, setSessionId] = useState("")
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDocument[]>([])
@@ -381,10 +376,16 @@ export default function FinVoiceLanding() {
     )
   }
 
+  if (activeTab === "portfolio") {
+    return <PortfolioAnalysisTab onBack={() => setActiveTab("documents")} />
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-
-      <Navbar onConversation={() => setConversationMode(true)} />
+      <Navbar
+        onConversation={() => setConversationMode(true)}
+        onStockAnalysis={() => setActiveTab("portfolio")}
+      />
       {/* Hero Section */}
       <HeroSection
         sessionId={sessionId}
