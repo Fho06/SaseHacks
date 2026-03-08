@@ -18,6 +18,22 @@ const pdfParse = require("pdf-parse")
 
 const app = express()
 
+function getSpeechErrorMessage(err) {
+  const fallback = "Speech generation failed"
+  if (!err) return fallback
+
+  const bodyMessage = err?.body?.detail?.message
+  if (typeof bodyMessage === "string" && bodyMessage.trim()) {
+    return bodyMessage.trim()
+  }
+
+  if (typeof err.message === "string" && err.message.trim()) {
+    return err.message.trim()
+  }
+
+  return fallback
+}
+
 app.use(cors())
 app.use(express.json())
 app.use("/presentation", presentationRoutes)
@@ -180,10 +196,13 @@ app.post("/ask", async (req, res) => {
 
 app.get("/speech", async (req, res) => {
   try {
-    const { text } = req.query
+    const text = typeof req.query?.text === "string" ? req.query.text : ""
 
     if (!text) {
       return res.status(400).json({ error: "Text required" })
+    }
+    if (text.length > 8000) {
+      return res.status(400).json({ error: "Text too long for speech generation" })
     }
 
     const audio = await generateSpeech(text)
@@ -193,7 +212,28 @@ app.get("/speech", async (req, res) => {
 
   } catch (err) {
     console.error("Speech error:", err)
-    res.status(500).json({ error: "Speech generation failed" })
+    res.status(500).json({ error: getSpeechErrorMessage(err) })
+  }
+})
+
+app.post("/speech", async (req, res) => {
+  try {
+    const text = typeof req.body?.text === "string" ? req.body.text.trim() : ""
+
+    if (!text) {
+      return res.status(400).json({ error: "Text required" })
+    }
+    if (text.length > 8000) {
+      return res.status(400).json({ error: "Text too long for speech generation" })
+    }
+
+    const audio = await generateSpeech(text)
+
+    res.setHeader("Content-Type", "audio/mpeg")
+    res.send(audio)
+  } catch (err) {
+    console.error("Speech error:", err)
+    res.status(500).json({ error: getSpeechErrorMessage(err) })
   }
 })
 
@@ -258,3 +298,4 @@ app.post("/resummarize/:documentId", async (req, res) => {
 app.listen(5050, () => {
   console.log("Server running on port 5050")
 })
+
