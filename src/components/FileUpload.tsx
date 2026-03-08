@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useDropzone } from "react-dropzone"
 
-type UploadedDocument = {
+export type UploadedDocument = {
   sessionId: string
   documentId: string
   filename: string
@@ -10,6 +10,9 @@ type UploadedDocument = {
 }
 
 type FileUploadProps = {
+  sessionId?: string
+  initialUploadedDocs?: UploadedDocument[]
+  showInternalLists?: boolean
   onSessionUpdate?: (payload: {
     sessionId: string
     uploadedDocs: UploadedDocument[]
@@ -17,7 +20,7 @@ type FileUploadProps = {
   }) => void
 }
 
-type FinancialSummary = {
+export type FinancialSummary = {
   title: string
   summary: string
   keyMetrics: string[]
@@ -43,10 +46,16 @@ function makeSessionId() {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5050"
 
-export default function FileUpload({ onSessionUpdate }: FileUploadProps) {
-  const [sessionId] = useState(() => makeSessionId())
+export default function FileUpload({
+  sessionId: providedSessionId,
+  initialUploadedDocs = [],
+  showInternalLists = true,
+  onSessionUpdate
+}: FileUploadProps) {
+  const [generatedSessionId] = useState(() => makeSessionId())
+  const sessionId = providedSessionId || generatedSessionId
   const [queuedFiles, setQueuedFiles] = useState<File[]>([])
-  const [uploadedDocs, setUploadedDocs] = useState<UploadedDocument[]>([])
+  const [uploadedDocs, setUploadedDocs] = useState<UploadedDocument[]>(initialUploadedDocs)
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -147,7 +156,7 @@ export default function FileUpload({ onSessionUpdate }: FileUploadProps) {
       </div>
 
       <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-        <span className="truncate">Session: {sessionId}</span>
+        <span className="truncate">{showInternalLists ? `Session: ${sessionId}` : "Upload files"}</span>
         <button
           type="button"
           onClick={submitFiles}
@@ -158,7 +167,7 @@ export default function FileUpload({ onSessionUpdate }: FileUploadProps) {
         </button>
       </div>
 
-      {queuedFiles.length > 0 ? (
+      {showInternalLists && queuedFiles.length > 0 ? (
         <ul className="space-y-2 text-sm">
           {queuedFiles.map((file, idx) => (
             <li key={`${file.name}-${idx}`} className="flex items-center justify-between rounded-lg bg-secondary/40 px-3 py-2">
@@ -178,7 +187,7 @@ export default function FileUpload({ onSessionUpdate }: FileUploadProps) {
         </ul>
       ) : null}
 
-      {uploadedDocs.length > 0 ? (
+      {showInternalLists && uploadedDocs.length > 0 ? (
         <div className="space-y-2">
           <p className="text-xs font-medium text-muted-foreground">Uploaded in this session</p>
           {uploadedDocs.map((doc) => (
