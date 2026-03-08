@@ -362,9 +362,13 @@ export default function FinVoiceLanding() {
               <div className="rounded-2xl border border-border/50 bg-card/40 p-3 text-left outline-accent">
                 <p className="mb-2 text-sm font-medium">Upload financial documents for context</p>
                 <FileUpload
-                  onSessionUpdate={({ sessionId: nextSessionId, uploadedDocs }) => {
+                  onSessionUpdate={({ sessionId: nextSessionId, uploadedDocs, summaries }) => {
                     setSessionId(nextSessionId)
                     setUploadedCount(uploadedDocs.length)
+
+                    if (Array.isArray(summaries) && summaries.length > 0) {
+                      setSummary(summaries[0])
+                    }
                   }}
                 />
               </div>
@@ -388,6 +392,51 @@ export default function FinVoiceLanding() {
                     ? `Session ready (${uploadedCount} uploaded document${uploadedCount > 1 ? "s" : ""}).`
                     : "Upload documents to activate RAG-backed question answering."}
               </p>
+              {summary && (
+                <div className="rounded-xl border border-border/60 bg-secondary/25 p-4 text-left mb-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+                    AI Financial Briefing
+                  </p>
+
+                  <p className="text-sm mb-4">{summary.summary}</p>
+
+                  <div className="grid md:grid-cols-2 gap-4 text-sm">
+
+                    <div>
+                      <p className="font-semibold mb-1">Key Metrics</p>
+                      <ul className="list-disc pl-4 text-muted-foreground">
+                        {summary.keyMetrics?.map((m, i) => (
+                          <li key={i}>{m}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <p className="font-semibold mb-1">Major Risks</p>
+                      <ul className="list-disc pl-4 text-muted-foreground">
+                        {summary.majorRisks?.map((m, i) => (
+                          <li key={i}>{m}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <p className="font-semibold mb-1">Management Tone</p>
+                      <p className="text-muted-foreground">{summary.managementTone}</p>
+                    </div>
+
+                    <div>
+                      <p className="font-semibold mb-1">Red Flags</p>
+                      <ul className="list-disc pl-4 text-muted-foreground">
+                        {summary.redFlags?.map((m, i) => (
+                          <li key={i}>{m}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                  </div>
+                </div>
+              )}
               {askResponse ? (
                 <div className="rounded-xl border border-border/60 bg-secondary/25 p-4 text-left">
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">

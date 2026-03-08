@@ -7,9 +7,10 @@ import { answerQuestion } from "./rag.js"
 import { chunkText } from "./chunker.js"
 import { embedText } from "./embeddings.js"
 import { db } from "./mongodb.js"
-import { CHUNKS_COLLECTION } from "./search-indexes.js"
+import { CHUNKS_COLLECTION, SUMMARIES_COLLECTION } from "./search-indexes.js"
 import { generateSpeech } from "./tts.js"
 import { handleChat } from "./chat.js"
+import { generateFinancialSummary } from "./summarizer.js"
 
 const require = createRequire(import.meta.url)
 const pdfParse = require("pdf-parse")
@@ -68,6 +69,25 @@ app.post("/upload", upload.array("files"), async (req, res) => {
         const parsed = await parser.getText()
         extractedText = parsed.text || ""
       }
+        //SUMMARY
+      let summary = null
+      try {
+        summary = await generateFinancialSummary(
+          extractedText,
+          file.originalname
+        )
+
+        await db.collection(SUMMARIES_COLLECTION).insertOne({
+          sessionId,
+          documentId,
+          filename: file.originalname,
+          summary,
+          createdAt: uploadedAt
+        })
+
+      } catch (err) {
+        console.error("Summary generation failed:", err)
+      }
       
       const chunks = chunkText(extractedText)
       const chunkDocs = []
@@ -94,7 +114,8 @@ app.post("/upload", upload.array("files"), async (req, res) => {
         sessionId,
         documentId,
         filename: file.originalname || "uploaded-file.pdf",
-        chunks: chunkDocs.length
+        chunks: chunkDocs.length,
+        summary
       })
     }
 
@@ -210,6 +231,30 @@ app.post("/speech", async (req, res) => {
   } catch (err) {
     console.error("Speech error:", err)
     res.status(500).json({ error: getSpeechErrorMessage(err) })
+  }
+})
+
+app.get("/summary/:documentId", async (req, res) => {
+  try {
+    const { documentId } = req.params
+
+    const doc = await db
+      .collection(SUMMARIES_COLLECTION)
+      .findOne({ documentId })
+
+    if (!doc) {
+      return res.status(404).json({
+        error: "Summary not found"
+      })
+    }
+
+    res.json(doc.summary)
+
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({
+      error: "Failed to fetch summary"
+    })
   }
 })
 

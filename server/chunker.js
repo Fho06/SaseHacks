@@ -1,4 +1,4 @@
-export function chunkText(text, size = 800, overlap = 100) {
+export function chunkText(text, size = 1800, overlap = 200) {
 
   const chunks = []
 
