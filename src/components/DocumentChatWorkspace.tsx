@@ -285,6 +285,9 @@ export default function DocumentChatWorkspace({
       }
 
       setMessages((prev) => [...prev, assistantMessage])
+      if (ttsEnabled) {
+        void speakText(assistantMessage.content, assistantMessage.id)
+      }
 
       requestAnimationFrame(() => {
         if (viewportRef.current) {
