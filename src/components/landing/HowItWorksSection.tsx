@@ -7,7 +7,7 @@ export default function HowItWorksSection() {
 
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-balance">
-            How it works
+            How It Works
           </h2>
 
           <p className="text-muted-foreground max-w-2xl mx-auto text-balance">

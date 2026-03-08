@@ -97,19 +97,18 @@ export default function HeroSection(props: HeroSectionProps) {
     } = props
 
   return (
-    <section className="pt-32 pb-20 md:pt-40 md:pb-32">
+    <section className="pt-13">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center mb-12">
-            <div className="mb-6 flex justify-center gap-2">
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-                RAG-Powered Financial Intelligence
-              </span>
+          <div className="max-w-4xl mx-auto text-center mb-2">
+            <div className="flex justify-center">
+                <img
+                    src="/landing_logo.png"
+                    alt="FinVoice"
+                    className="h-50 md:h-60 lg:h-90 object-contain"
+                />
             </div>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 text-balance leading-tight">
-              Turn dense filings into grounded, voice-enabled financial insight
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto text-balance mb-8 leading-relaxed">
-              Upload 10-Ks, 10-Qs, earnings call transcripts, and analyst notes. Ask questions in natural language. Get source-backed answers with citations and optional voice playback.
+            <p className="text-lg md:text-xl text-muted-foreground max-w-4xl mx-auto text-balance mb-6 leading-relaxed">
+                Upload financial documents. Ask questions. Get source-backed answers.
             </p>
             <div className="max-w-3xl mx-auto mb-8 space-y-4">
               <div className="rounded-2xl border border-border/50 bg-card/40 p-3 text-left outline-accent">
@@ -142,6 +141,15 @@ export default function HeroSection(props: HeroSectionProps) {
                     }
                   }}
                 />
+                <div className="mt-3 text-xs text-muted-foreground">
+                    <p className="mb-1 font-medium text-foreground/80">Works best with:</p>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        <span>📄 10-K filings</span>
+                        <span>📊 10-Q reports</span>
+                        <span>🎤 Earnings call transcripts</span>
+                        <span>📑 Analyst reports</span>
+                    </div>
+                </div>
               </div>
               <div className="scroll-mt-24">
                 <form onSubmit={handlePromptSubmit} className="flex flex-col sm:flex-row gap-3">
