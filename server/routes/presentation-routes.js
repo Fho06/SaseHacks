@@ -1,7 +1,7 @@
 import express from "express"
-import { generateSlides } from "./presentation-ai.js"
-import { createPresentation } from "./ppt-generator.js"
-import { generateBackground } from "./background-generator.js"
+import { generateSlides } from "../services/presentation-ai.js"
+import { createPresentation } from "../services/ppt-generator.js"
+import { generateBackground } from "../utils/background-generator.js"
 
 const router = express.Router()
 

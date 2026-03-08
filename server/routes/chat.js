@@ -1,4 +1,4 @@
-import { answerQuestion } from "./rag.js"
+import { answerQuestion } from "../services/rag.js"
 
 export async function handleChat(req, res) {
   try {
