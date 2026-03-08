@@ -11,6 +11,7 @@ import { CHUNKS_COLLECTION, SUMMARIES_COLLECTION } from "./search-indexes.js"
 import { generateSpeech } from "./tts.js"
 import { handleChat } from "./chat.js"
 import { generateFinancialSummary } from "./summarizer.js"
+import presentationRoutes from "./presentation-routes.js"
 
 const require = createRequire(import.meta.url)
 const pdfParse = require("pdf-parse")
@@ -35,10 +36,12 @@ function getSpeechErrorMessage(err) {
 
 app.use(cors())
 app.use(express.json())
+app.use("/presentation", presentationRoutes)
 app.get("/", (_req, res) => {
   res.json({ status: "server running" })
 })
 app.post("/chat", handleChat)
+
 
 const upload = multer({ storage: multer.memoryStorage() })
 
