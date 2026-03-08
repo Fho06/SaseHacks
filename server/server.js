@@ -218,6 +218,40 @@ app.get("/summary/:documentId", async (req, res) => {
   }
 })
 
+app.post("/resummarize/:documentId", async (req, res) => {
+  try {
+    const { documentId } = req.params
+
+    const chunks = await db
+      .collection(CHUNKS_COLLECTION)
+      .find({ documentId })
+      .sort({ chunkIndex: 1 })
+      .toArray()
+
+    if (!chunks.length) {
+      return res.status(404).json({ error: "Document not found" })
+    }
+
+    const text = chunks.map(c => c.text).join("\n")
+
+    const summary = await generateFinancialSummary(
+      text,
+      chunks[0].filename
+    )
+
+    await db.collection(SUMMARIES_COLLECTION).updateOne(
+      { documentId },
+      { $set: { summary, updatedAt: new Date() } }
+    )
+
+    res.json(summary)
+
+  } catch (err) {
+    console.error("Resummarize error:", err)
+    res.status(500).json({ error: "Failed to regenerate summary" })
+  }
+})
+
 app.listen(5050, () => {
   console.log("Server running on port 5050")
 })
