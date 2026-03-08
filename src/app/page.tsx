@@ -96,6 +96,19 @@ export default function FinVoiceLanding() {
   const [askError, setAskError] = useState<string | null>(null)
   const [askResponse, setAskResponse] = useState<AskResponse | null>(null)
   const [summary, setSummary] = useState<FinancialSummary | null>(null)
+  const [isResummarizing, setIsResummarizing] = useState(false)
+  const [documentId, setDocumentId] = useState<string | null>(null)
+  const chatInputRef = useRef<HTMLInputElement | null>(null)
+  const chatSectionRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (uploadedCount > 0 && chatSectionRef.current) {
+      chatSectionRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      })
+    }
+  }, [uploadedCount])
   const [conversationMode, setConversationMode] = useState(false)
   const [ttsEnabled, setTtsEnabled] = useState(true)
   const [ttsLoading, setTtsLoading] = useState(false)
@@ -241,6 +254,7 @@ export default function FinVoiceLanding() {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [askResponse?.answer, isSpeaking, ttsEnabled, ttsLoading])
 
+  
   async function handlePromptSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const trimmedPrompt = promptInput.trim()
@@ -283,6 +297,26 @@ export default function FinVoiceLanding() {
       setAskError(error instanceof Error ? error.message : "Failed to get answer")
     } finally {
       setIsAsking(false)
+    }
+  }
+
+  async function handleResummarize(documentId: string) {
+    setIsResummarizing(true)
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/resummarize/${documentId}`, {
+        method: "POST"
+      })
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data?.error || "Failed to regenerate summary")
+
+      setSummary(data)
+
+    } catch (err) {
+      console.error("Resummarize failed:", err)
+    } finally {
+      setIsResummarizing(false)
     }
   }
 
@@ -390,25 +424,32 @@ export default function FinVoiceLanding() {
                     setUploadedDocs(uploadedDocs)
                     setUploadedCount(uploadedDocs.length)
 
+                    if (uploadedDocs.length > 0) {
+                      setDocumentId(uploadedDocs[0].documentId)
+                    }
+
                     if (Array.isArray(summaries) && summaries.length > 0) {
                       setSummary(summaries[0])
                     }
                   }}
                 />
               </div>
-              <form onSubmit={handlePromptSubmit} className="flex flex-col sm:flex-row gap-3">
-                <input
-                  type="text"
-                  value={promptInput}
-                  onChange={(event) => setPromptInput(event.target.value)}
-                  placeholder="Ask FinVoice a question about your documents..."
-                  className="h-14 flex-1 rounded-md border border-border bg-secondary/20 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 outline-input"
-                />
-                <Button type="submit" size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
-                  {isAsking ? "Asking..." : "Ask Gemini"}
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </form>
+              <div ref={chatSectionRef} className="scroll-mt-24">
+                <form onSubmit={handlePromptSubmit} className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    //ref={chatInputRef} //auto scroll
+                    type="text"
+                    value={promptInput}
+                    onChange={(event) => setPromptInput(event.target.value)}
+                    placeholder="Ask FinVoice a question about your documents..."
+                    className="h-14 flex-1 rounded-md border border-border bg-secondary/20 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 outline-input"
+                  />
+                  <Button type="submit" size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                    {isAsking ? "Asking..." : "Ask Gemini"}
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </form>
+              </div>
               <p className="text-xs text-muted-foreground text-left sm:text-center">
                 {askError
                   ? askError
@@ -416,11 +457,27 @@ export default function FinVoiceLanding() {
                     ? `Session ready (${uploadedCount} uploaded document${uploadedCount > 1 ? "s" : ""}).`
                     : "Upload documents to activate RAG-backed question answering."}
               </p>
+
+              {uploadedCount > 0 && !summary && (
+                <div className="rounded-xl border border-border/60 bg-secondary/25 p-4 text-sm text-muted-foreground">
+                  Generating AI financial briefing...
+                </div>
+              )}
               {summary && (
                 <div className="rounded-xl border border-border/60 bg-secondary/25 p-4 text-left mb-4">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-                    AI Financial Briefing
-                  </p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      {summary.title || "AI Financial Briefing"}
+                    </p>
+
+                    <button
+                      onClick={() => documentId && handleResummarize(documentId)}
+                      disabled={!documentId || isResummarizing}
+                      className="text-xs px-2 py-1 rounded border border-border hover:bg-secondary/40"
+                    >
+                      {isResummarizing ? "Regenerating..." : "Resummarize"}
+                    </button>
+                  </div>
 
                   <p className="text-sm mb-4">{summary.summary}</p>
 

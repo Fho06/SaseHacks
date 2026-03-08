@@ -6,7 +6,7 @@ const ai = new GoogleGenAI({
 
 export async function generateFinancialSummary(text, filename) {
 
-  const truncatedText = text.slice(0, 30000)
+  const truncatedText = text.slice(0, 25000)
 
   const prompt = `
 You are a financial analyst.
@@ -25,9 +25,12 @@ JSON format:
 
 Rules:
 - Do not invent numbers
-- Be concise
-- Prefer 2–5 items per list
-- Return JSON only
+- If risks are not explicitly listed, infer them from the document context
+- Use short bullet points
+- Prefer 2-5 items per list
+- Output JSON only
+- No markdown
+- No code blocks
 
 Document: ${filename}
 
@@ -40,13 +43,25 @@ ${truncatedText}
     contents: prompt
   })
 
-  const raw = response.text
+  const raw = response.candidates?.[0]?.content?.parts?.[0]?.text || ""
+
+  console.log("Gemini summary raw:", raw)
 
   let parsed
+
   try {
     parsed = JSON.parse(raw)
-  } catch {
-    throw new Error("Failed to parse summary JSON")
+  } catch (err) {
+    console.error("Failed to parse summary JSON:", raw)
+
+    return {
+      title: "AI Financial Briefing",
+      summary: "Summary generation failed.",
+      keyMetrics: [],
+      majorRisks: [],
+      managementTone: "",
+      redFlags: []
+    }
   }
 
   return parsed
