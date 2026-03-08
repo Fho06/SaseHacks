@@ -73,3 +73,33 @@ export default defineConfig([
   },
 ])
 ```
+
+## FinVoice Deep Dive Mode
+
+Deep Dive mode adds a chat-style follow-up workflow from the Gemini answer card.
+
+### Frontend
+- The Gemini answer card now has a `Deep Dive` button.
+- Clicking it opens a chat interface where follow-up prompts can be asked about the previous answer.
+
+### Backend API
+- New endpoint: `POST /deep-dive`
+- Request body:
+  - `question` (string, required)
+  - `sessionId` (string, optional)
+  - `documentId` (string, optional)
+  - `previousAnswer` (string, optional)
+  - `conversation` (array of `{ role, content }`, optional)
+- Response includes:
+  - `answer`
+  - `dbSources` (citations from uploaded-document evidence)
+  - `webSources` (online citations with URLs)
+
+### Deep Dive Environment Variables (server/.env)
+```env
+DEEP_DIVE_MAX_WEB_SOURCES=4
+DEEP_DIVE_MAX_HISTORY_MESSAGES=10
+DEEP_DIVE_MAX_WEB_SNIPPET_CHARS=500
+DEEP_DIVE_MAX_OUTPUT_TOKENS=900
+GEMINI_MODEL_DEEP_DIVE=gemini-2.5-flash
+```

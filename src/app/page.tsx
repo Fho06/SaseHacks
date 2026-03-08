@@ -5,6 +5,7 @@ import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import FileUpload from "@/components/FileUpload"
+import DeepDiveChat from "@/components/DeepDiveChat"
 import {
   ArrowRight,
   AlertCircle,
@@ -84,6 +85,7 @@ export default function FinVoiceLanding() {
   const [isAsking, setIsAsking] = useState(false)
   const [askError, setAskError] = useState<string | null>(null)
   const [askResponse, setAskResponse] = useState<AskResponse | null>(null)
+  const [deepDiveContext, setDeepDiveContext] = useState<{ previousAnswer: string; documentId?: string | null } | null>(null)
   const [ttsEnabled, setTtsEnabled] = useState(true)
   const [ttsLoading, setTtsLoading] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
@@ -294,6 +296,17 @@ export default function FinVoiceLanding() {
     },
   ]
 
+  if (deepDiveContext) {
+    return (
+      <DeepDiveChat
+        sessionId={sessionId}
+        documentId={deepDiveContext.documentId || null}
+        previousAnswer={deepDiveContext.previousAnswer}
+        onBack={() => setDeepDiveContext(null)}
+      />
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Sticky Navbar */}
@@ -468,6 +481,20 @@ export default function FinVoiceLanding() {
                         title="Play or stop speech (Alt+P, Esc)"
                       >
                         {ttsLoading ? "Loading voice..." : isSpeaking ? "Stop Voice" : "Play Voice"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          stopSpeech()
+                          setDeepDiveContext({
+                            previousAnswer: askResponse.answer,
+                            documentId: askResponse.sources[0]?.documentId || null
+                          })
+                        }}
+                        className="rounded-md border border-border/60 bg-background/40 px-2 py-1 text-xs text-foreground transition-colors hover:bg-secondary/40"
+                        title="Open deep dive chat"
+                      >
+                        Deep Dive
                       </button>
                     </div>
                   </div>
