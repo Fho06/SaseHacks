@@ -1,9 +1,10 @@
 "use client"
 
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import FileUpload, { type UploadedDocument } from "@/components/documents/FileUpload"
 import PresentationGenerator from "@/components/PresentationGenerator"
-import { ArrowRight, Database, Zap, Volume2, Award } from "lucide-react"
+import { ArrowRight, Database, Zap, Volume2, Award, Mic } from "lucide-react"
 import type { ReactNode } from "react"
 
 const TechStackBadge = ({ label, icon: Icon }: { label: string; icon: ReactNode }) => (
@@ -96,6 +97,32 @@ export default function HeroSection(props: HeroSectionProps) {
     setConversationMode
     } = props
 
+    const [listening, setListening] = useState(false)
+    const recognitionRef = useRef<any>(null)
+
+    function startListening() {
+    const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition
+
+    if (!SpeechRecognition) {
+        alert("Speech recognition not supported")
+        return
+    }
+
+    const recognition = new SpeechRecognition()
+
+    recognition.lang = "en-US"
+    recognition.interimResults = false
+    recognition.maxAlternatives = 1
+
+    recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript
+        setPromptInput(transcript)
+    }
+
+    recognition.start()
+    }
+
   return (
     <section className="pt-13">
         <div className="container mx-auto px-4">
@@ -153,18 +180,31 @@ export default function HeroSection(props: HeroSectionProps) {
               </div>
               <div className="scroll-mt-24">
                 <form onSubmit={handlePromptSubmit} className="flex flex-col sm:flex-row gap-3">
-                  <input
-                    type="text"
-                    value={promptInput}
-                    onChange={(event) => setPromptInput(event.target.value)}
-                    placeholder="Ask FinVoice a question about your documents..."
-                    className="h-14 flex-1 rounded-md border border-border bg-secondary/20 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 outline-input"
-                  />
-                  <Button type="submit" size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
-                    {isAsking ? "Asking..." : "Ask Gemini"}
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </form>
+                    <div className="relative flex-1">
+
+                        <input
+                        type="text"
+                        value={promptInput}
+                        onChange={(event) => setPromptInput(event.target.value)}
+                        placeholder="Ask FinVoice a question about your documents..."
+                        className="h-14 w-full rounded-md border border-border bg-secondary/20 px-4 pr-12 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 outline-input"
+                        />
+
+                        <button
+                        type="button"
+                        onClick={startListening}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary"
+                        >
+                        <Mic className="h-5 w-5" />
+                        </button>
+
+                    </div>
+
+                    <Button type="submit" size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                        {isAsking ? "Asking..." : "Ask Gemini"}
+                        <ArrowRight className="h-4 w-4" />
+                    </Button>
+                    </form>
               </div>
               <p className="text-xs text-muted-foreground text-left sm:text-center">
                 {statusMessage}
