@@ -1,409 +1,237 @@
-# FinVoice AI - Technical Documentation
+# FinVoice AI Repository Documentation
 
-Generated: March 8, 2026  
+Generated: March 8, 2026
 Repository root: `C:\Users\Owner\.vscode\projects\Hackathons\SASEHACKS26\SaseHacks`
 
-## 1. Project Overview
+## 1. Project Summary
 
-FinVoice AI is a finance-document intelligence application. It lets authenticated users upload documents, indexes them into MongoDB Atlas with embeddings, answers natural-language questions using retrieval-augmented generation (RAG), generates structured financial briefings, and supports text-to-speech playback.
+FinVoice AI is a finance-document intelligence app with authenticated upload, retrieval-augmented Q and A, AI summaries, optional voice playback, presentation generation, and a newly added portfolio analysis workflow for public equities.
 
-Primary stack:
-- Frontend: Vite + React + TypeScript + Tailwind (with shadcn/ui primitives)
-- Backend: Express (Node.js, ESM)
-- Database: MongoDB Atlas (`ragDB`)
-- AI: Google Gemini (embeddings + generation)
-- Auth: Firebase Google sign-in (frontend SDK + backend token verification)
-- Voice: ElevenLabs API with browser speech fallback
-- Output generation: PowerPoint export via `pptxgenjs`
+The current repository is split into:
+- A Vite + React + TypeScript frontend in `src`
+- An Express + MongoDB backend in `server`
+- Static assets in `public`
+- Developer utilities and generated docs in `dev resources`
 
-Core goals:
-- Ground answers in uploaded evidence
-- Keep user data scoped to authenticated owners
-- Provide source visibility (chunk-level citations)
-- Support recurring Q&A over previously uploaded files
+## 2. What Changed Recently
 
----
+The latest changes introduce a full portfolio analysis slice across frontend, backend, persistence, and tests.
 
-## 2. Runtime Architecture
+### New frontend additions
 
-```text
-Browser (React/Vite)
-  -> Firebase Web Auth (Google Sign-In)
-  -> Express API (Authorization: Bearer <Firebase ID Token>)
-      -> Firebase Admin verifyIdToken
-      -> MongoDB Atlas (chunks + summaries)
-      -> Gemini API (embeddings, answers, summaries, slide JSON, backgrounds)
-      -> ElevenLabs API (TTS audio)
-```
+- `src/components/portfolio/PortfolioAnalysisTab.tsx`
+  New dedicated UI for portfolio/company assessment with:
+  - Query input by ticker or company name
+  - Overall score and verdict rendering
+  - Category scorecards for Growth, Financial Health, News Outlook, and Stock Value
+  - Per-question scoring breakdowns
+  - Top positives and risks
+  - Source list with filings and news links
+  - Portfolio history view
 
-Major runtime paths:
-- Frontend entry: `src/main.tsx` -> `src/App.tsx` -> `src/app/page.tsx`
-- Backend entry: `server/server.js` (port `5050`)
+- `src/lib/portfolio-api.ts`
+  Typed client functions for:
+  - `POST /portfolio/analyze`
+  - `GET /portfolio/history`
 
-Important repository note:
-- The app has some Next-style folders/files (`src/app/*`, `next.config.mjs`), but active runtime is Vite React, not Next server routing.
+- `src/app/page.tsx`
+  Main landing page now includes a `Portfolio Analysis` navigation action and tab switch into `PortfolioAnalysisTab`.
 
----
+### New backend additions
 
-## 3. Repository Structure (Key Areas)
+- New authenticated route group mounted in `server/server.js`:
+  - `app.use("/portfolio", verifyFirebaseAuth, portfolioRoutes)`
 
-### Frontend
-- `src/app/page.tsx`: main landing page, upload/ask UI, summary display, conversation mode toggle
-- `src/components/FileUpload.tsx`: drag/drop queue, upload submit, delete document
-- `src/components/DocumentChatWorkspace.tsx`: recurring conversation mode with per-file/all-files scope
-- `src/components/LoginButton.tsx`: Google sign-in/out control
-- `src/providers/AuthProvider.tsx`: auth state context + Firebase auth actions
-- `src/lib/firebase.ts`: Firebase SDK initialization from `VITE_FIREBASE_*`
-- `src/lib/api-auth.ts`: builds `Authorization` header with Firebase ID token
-- `src/components/PresentationGenerator.tsx`: front-end slide generation/export UX
-- `src/app/globals.css`: design tokens, light/dark theme palette, utility styles
+- New backend module folder: `server/portfolio`
+  - `routes.js`: portfolio endpoints and persistence writes
+  - `analyzer.js`: orchestration pipeline and Gemini call
+  - `company-resolver.js`: SEC ticker/name resolution
+  - `news-discovery.js`: multi-provider news discovery, ranking, dedupe
+  - `article-extractor.js`: lightweight article text extraction
+  - `sec-data.js`: SEC filings and company facts snapshot
+  - `market-data.js`: Yahoo quote snapshot
+  - `peer-valuation.js`: peer P/E comparison using static peer map
+  - `scoring.js`: deterministic scoring formulas and verdict bands
+  - `validation.js`: input/payload normalization and guardrails
+  - `prompt.js`: strict JSON prompt template
+  - `questions.js`: canonical question sets
+  - `cache.js`: in-memory TTL cache helpers
+  - `collections.js`: portfolio collection names
+  - `config.js`: portfolio provider/cache configuration
 
-### Backend
-- `server/server.js`: Express app + API routes
-- `server/auth.js`: Firebase Admin verification middleware
-- `server/mongodb.js`: Atlas connection + `db` export
-- `server/chunker.js`: chunking strategy
-- `server/embeddings.js`: Gemini embedding calls
-- `server/rag.js`: retrieval + answer generation (vector/text hybrid)
-- `server/summarizer.js`: AI financial briefing generation
-- `server/tts.js`: ElevenLabs speech generation
-- `server/presentation-routes.js`: presentation API routes
-- `server/presentation-ai.js`: Gemini slide JSON generation
-- `server/background-generator.js`: Gemini SVG background generation
-- `server/ppt-generator.js`: PowerPoint binary generation
-- `server/scripts/setup-indexes.js`: Atlas Search + Mongo index setup
+### New tests and scripts
 
----
+- New backend tests in `server/tests`:
+  - `auth-middleware.test.js`
+  - `provider-fallbacks.test.js`
+  - `scoring.test.js`
+  - `validation.test.js`
 
-## 4. Main Features and How They Work
+- `package.json` (root) now includes:
+  - `npm test` -> delegates to `server` tests
 
-## 4.1 Google Authentication
+- `server/package.json` now includes:
+  - `npm test` -> `node --test tests/**/*.test.js`
 
-### Frontend flow
-1. `AuthProvider` initializes Firebase auth (if all `VITE_FIREBASE_*` values are valid).
-2. User clicks `Sign in with Google` in `LoginButton`.
-3. `signInWithPopup` returns a signed-in Firebase user.
-4. API calls use `getAuthHeader()` to fetch the current ID token and send:
-   - `Authorization: Bearer <id_token>`
+## 3. Main User Workflows
 
-### Backend flow
-1. Protected routes call `verifyFirebaseAuth` middleware.
-2. Middleware verifies token via Firebase Admin SDK.
-3. Request gets `req.auth = { userId, email }`.
-4. Routes scope data access by `userId`.
+### 3.1 Document intelligence workflow
 
-Why this matters:
-- User identity is cryptographically verified server-side.
-- Document ownership and retrieval are tied to Firebase UID, not just frontend state.
+1. User signs in with Google via Firebase web auth.
+2. Frontend sends Firebase ID token in `Authorization` header.
+3. User uploads PDF/TXT files.
+4. Backend parses text, chunks content, embeds chunks, stores in MongoDB, and generates summary.
+5. User asks questions; backend retrieves relevant chunks (vector + text hybrid path) and returns grounded answer with citations.
+6. User can listen to answers through ElevenLabs with browser speech fallback.
+7. User can regenerate summaries and generate slide decks.
 
----
+### 3.2 Portfolio analysis workflow (new)
 
-## 4.2 Document Upload, Parsing, Chunking, Embedding, Storage
+1. Authenticated user opens Portfolio Analysis tab from landing page.
+2. User submits company query (ticker or company name).
+3. Backend resolves company identity and gathers evidence:
+   - News sources
+   - Extracted article content
+   - SEC filings and financial facts
+   - Market quote metrics
+   - Peer valuation comparison
+4. Backend prompts Gemini for structured JSON analysis.
+5. Backend normalizes output to fixed question schema, computes deterministic scores, and returns analysis + sources + warnings + disclaimer.
+6. Backend stores portfolio analysis artifacts and exposes history for later recall.
 
-Route: `POST /upload` (authenticated)
+## 4. Frontend Architecture
 
-Pipeline per uploaded file:
-1. Assign `documentId = randomUUID()`.
-2. Parse content:
-   - `text/plain`: direct UTF-8 decode
-   - others (expected PDFs): `pdf-parse`
-3. Generate summary with Gemini (`generateFinancialSummary`).
-4. Split extracted text with `chunkText(text, size=1800, overlap=200)`.
-5. Embed each chunk with `gemini-embedding-001`.
-6. Insert chunk documents into `chunks` collection.
-7. Insert summary into `summaries` collection.
-8. Return upload metadata (`documentId`, chunk count, summary).
+### Entry points
 
-Stored chunk fields include:
-- `userId`, `sessionId`, `documentId`, `filename`, `sourceType`
-- `chunkIndex`, `text`, `embedding`, `embeddingModel`, `createdAt`
+- Runtime entry: `src/main.tsx`
+- Application shell: `src/App.tsx`
+- Main page: `src/app/page.tsx`
 
-Complex behavior:
-- Upload accepts a frontend-provided `sessionId`; if absent server creates one.
-- Ownership is account-level (`userId`) while UI list can be session-scoped.
+`src/app/layout.tsx` exists, but the active runtime path is still Vite (`main.tsx -> App.tsx -> page.tsx`), not Next.js app-router runtime.
 
----
+### Major frontend modules
 
-## 4.3 Retrieval-Augmented Question Answering (RAG)
+- `src/app/page.tsx`
+  Landing page, upload and ask flow, conversation mode entry, summary display, and tab switch to portfolio analysis.
 
-Route: `POST /ask` (authenticated)
+- `src/components/DocumentChatWorkspace.tsx`
+  Conversation workspace with document selection and follow-up Q and A.
 
-Inputs:
-- `question` (required)
-- optional `documentId` scope
-- optional `sessionId` scope
-- `hybrid` (default true)
-- `limit` (clamped 1..10)
+- `src/components/FileUpload.tsx`
+  Upload handling, session-level document list, and delete flow.
 
-RAG internals in `server/rag.js`:
-1. Embed question with Gemini.
-2. Build retrieval filter from `{ userId, documentId, sessionId }`.
-3. Run Atlas Vector Search (`$vectorSearch`) over `embedding`.
-4. Optionally run Atlas Search text query (`$search`) over `text`, `filename`, `sourceType`.
-5. Fuse vector + text rankings with Reciprocal Rank Fusion (RRF).
-6. If no results, fallback to recent chunks in scope (`runSessionFallback`).
-7. Build prompt context from retrieved chunks only.
-8. Generate final answer with `gemini-2.5-flash`.
-9. Return plain answer + citation objects.
+- `src/components/portfolio/PortfolioAnalysisTab.tsx`
+  New portfolio UI workflow.
 
-Important grounding properties:
-- Normal Q&A never sends full raw PDF binary to Gemini.
-- It sends retrieved chunk text only.
-- Citations preserve `documentId`, `filename`, `chunkIndex` so UI can expose evidence.
+- `src/lib/portfolio-api.ts`
+  New typed portfolio API client.
 
----
+- `src/components/PresentationGenerator.tsx`
+  Generates slide decks from financial briefing payloads.
 
-## 4.4 Recurring Conversation Mode
+- `src/providers/AuthProvider.tsx`
+  Browser auth state and token-backed session context.
 
-Component: `src/components/DocumentChatWorkspace.tsx`
+## 5. Backend Architecture
 
-Behavior:
-- Opens from main page via `Conversation Mode` button.
-- Left sidebar allows:
-  - upload more files
-  - select a specific file scope
-  - select `All files context`
-  - delete uploaded documents
-- Chat panel stores message history in component state.
-- Follow-up prompts are context-enriched by including recent turns (`buildContextualQuestion`), then sent to `/ask`.
-- Responses include optional citations in collapsible source section.
+Primary API is implemented in `server/server.js`.
 
-Scoping model:
-- If one file selected, `documentId` sent to backend.
-- If all files selected, no `documentId` filter sent.
-- Authentication still required; backend restricts by `userId`.
+### Existing document/chat routes
 
----
-
-## 4.5 AI Financial Briefing (Summary)
-
-Generator: `server/summarizer.js`
-
-Usage points:
-- During upload, summary is generated and stored.
-- User can trigger `POST /resummarize/:documentId` to regenerate from stored chunks.
-- Frontend displays briefing sections:
-  - title
-  - summary
-  - key metrics
-  - major risks
-  - management tone
-  - red flags
-
-Implementation details:
-- Raw text is truncated to first 25,000 chars before summarization.
-- Gemini is instructed to return strict JSON.
-- If JSON parse fails, backend returns a safe fallback summary object.
-
----
-
-## 4.6 Text-to-Speech (TTS)
-
-Routes:
+- `POST /upload` (auth required)
+- `GET /documents` (auth required)
+- `DELETE /documents/:documentId` (auth required)
+- `POST /ask` (auth required)
+- `GET /summary/:documentId` (auth required)
+- `POST /resummarize/:documentId` (auth required)
 - `POST /speech`
-- `GET /speech?text=...`
+- `GET /speech`
+- `POST /chat` (not auth-scoped in the same way as `/ask`)
+- `/presentation/*` routes
 
-Backend behavior:
-- Validates non-empty text and max length (`<= 8000` chars).
-- Calls ElevenLabs (`eleven_multilingual_v2`) using `ELEVENLABS_API_KEY` and optional `ELEVENLABS_VOICE_ID`.
-- Streams/concatenates audio and returns `audio/mpeg`.
+### New portfolio routes (all auth required)
 
-Frontend behavior:
-- TTS is opt-in (`off` by default in current UI state).
-- If ElevenLabs fails, fallback to browser `speechSynthesis` when available.
-- Landing page shortcuts:
-  - `Alt+M`: toggle TTS
-  - `Alt+P`: play/stop latest answer
-  - `Esc`: stop playback
+- `POST /portfolio/analyze`
+  - Validates input (`query` required, max 120 chars)
+  - Creates running job record
+  - Runs analysis pipeline
+  - Persists analysis and source artifacts
+  - Marks job completed
+  - Returns analysis payload + config warnings + disclaimer
 
----
+- `GET /portfolio/analysis/:ticker`
+  - Returns latest stored analysis for the authenticated user+ticker
 
-## 4.7 AI Presentation Generation and Export
+- `GET /portfolio/news/:ticker`
+  - Returns latest saved news artifacts for that user+ticker
 
-Routes under `/presentation`:
-- `POST /presentation/generate-presentation`
-- `POST /presentation/export-presentation`
+- `GET /portfolio/history`
+  - Returns most recent analysis history items (up to 25)
 
-Flow:
-1. Frontend sends financial briefing + optional instructions.
-2. `presentation-ai.js` asks Gemini for strict slide deck JSON.
-3. Optional background SVG is generated by Gemini (`background-generator.js`).
-4. `ppt-generator.js` renders slides with `pptxgenjs` (title, bullets, metric, two-column, chart, insight layouts).
-5. Export endpoint returns `.pptx` binary.
+## 6. Portfolio Analysis Pipeline Details
 
-Design choices:
-- Keeps generation deterministic at schema level (JSON contract).
-- Allows iterative edit mode by passing existing slides back into model.
+`server/portfolio/analyzer.js` orchestrates the following steps:
 
----
+1. Resolve ticker/company:
+   - `resolveCompanyInput` supports raw ticker, canonical name match, partial name match, and alias map.
+2. Gather news:
+   - Configurable API provider (if configured)
+   - Google News RSS fallback
+   - Dedupe + ranking based on relevance, recency, and source reputation
+3. Extract article body text:
+   - HTML stripping fallback to snippet when fetch fails
+4. Fetch SEC snapshot:
+   - Latest 10-K, 10-Q, and optional 8-K signal
+   - Revenue, net income, operating cash flow, long-term debt series
+5. Fetch market snapshot:
+   - Yahoo quote valuation fields (price, P/E, price/book, price/sales, 52-week range, market cap)
+6. Fetch peer valuation:
+   - Static peer map and median trailing P/E comparison
+7. Build evidence bundle and call Gemini (`gemini-2.5-flash`) with strict JSON schema prompt.
+8. Normalize and score:
+   - Clamp question scores to 1..5
+   - Compute category scores to 0..100
+   - Compute weighted overall score:
+     - Growth 30%
+     - Financial Health 30%
+     - News Outlook 20%
+     - Stock Value 20%
+   - Map score to verdict band.
+9. Validate and normalize final payload (`ensureAnalysisPayload`) to guarantee required shape.
 
-## 5. API Surface
+### Caching behavior
 
-## 5.1 Core Endpoints
+- News, SEC snapshot, market snapshot, and peer valuation lookups are wrapped in an in-memory TTL cache.
+- Cache is process-local and reset on server restart.
 
-- `GET /`
-  - health response `{ status: "server running" }`
+## 7. Data Model and Persistence
 
-- `POST /upload` (auth)
-  - multipart field: `files`
-  - form fields: `sessionId?`, `sourceType?`
-  - returns indexed file metadata and chunk counts
+### Existing collections
 
-- `GET /documents` (auth)
-  - returns user-owned docs grouped by `documentId`, with summaries when available
-
-- `DELETE /documents/:documentId` (auth)
-  - optional body `{ sessionId }`
-  - deletes chunks + summaries for matching owned document
-
-- `POST /ask` (auth)
-  - body: `{ question, documentId?, sessionId?, hybrid?, limit? }`
-  - returns `{ answer, sources[] }`
-
-- `GET /summary/:documentId` (auth)
-  - returns summary object
-
-- `POST /resummarize/:documentId` (auth)
-  - regenerates summary from stored chunks
-
-- `POST /speech`
-  - body: `{ text }`
-  - returns `audio/mpeg`
-
-- `GET /speech?text=...`
-  - returns `audio/mpeg`
-
-- `POST /chat` (not auth-protected currently)
-  - legacy lightweight wrapper over `answerQuestion(question)`
-
-- `POST /presentation/generate-presentation`
-- `POST /presentation/export-presentation`
-
-## 5.2 Auth Header Contract
-
-For authenticated routes:
-```http
-Authorization: Bearer <firebase_id_token>
-```
-
-If missing/invalid:
-- `401 Missing auth token` or `401 Invalid auth token`
-
-If Firebase Admin not configured:
-- `500 Firebase Admin is not configured...`
-
----
-
-## 6. Data Model
-
-Database: `ragDB`
-
-Collections:
 - `chunks`
 - `summaries`
 
-### `chunks` document (logical schema)
-```json
-{
-  "userId": "firebase_uid",
-  "sessionId": "uuid",
-  "documentId": "uuid",
-  "filename": "sample.pdf",
-  "sourceType": "user_upload",
-  "page": null,
-  "chunkIndex": 0,
-  "text": "...",
-  "embedding": [0.01, -0.02, ...],
-  "embeddingModel": "gemini-embedding-001",
-  "createdAt": "2026-03-08T..."
-}
-```
+### New portfolio collections
 
-### `summaries` document (logical schema)
-```json
-{
-  "userId": "firebase_uid",
-  "sessionId": "uuid",
-  "documentId": "uuid",
-  "filename": "sample.pdf",
-  "summary": {
-    "title": "AI Financial Briefing",
-    "summary": "...",
-    "keyMetrics": [],
-    "majorRisks": [],
-    "managementTone": "",
-    "redFlags": []
-  },
-  "createdAt": "2026-03-08T...",
-  "updatedAt": "2026-03-08T..."
-}
-```
+- `portfolioAnalyses`
+  Stores completed portfolio analyses by user+ticker+timestamp.
 
-Ownership and visibility model:
-- Persistent ownership: `userId`
-- Session-scoped UI grouping: `sessionId`
-- Document identity for retrieval/delete/summaries: `documentId`
+- `portfolioJobs`
+  Stores analysis job lifecycle records (`running`, `completed`, and `failed` inserts).
 
----
+- `companyProfiles`
+  Stores lightweight ticker/company profile metadata.
 
-## 7. Search and Indexing Strategy
+- `companySnapshots`
+  Stores per-user ticker source snapshots.
 
-Constants in `server/search-indexes.js`:
-- collection: `chunks`
-- vector index: `vector_index`
-- text index: `text_index`
-- vector path: `embedding`
+- `newsArticles`
+  Stores deduplicated/upserted news records per ticker+url.
 
-`server/scripts/setup-indexes.js` provisions:
-- Atlas Vector Search index with filter fields:
-  - `userId`, `sessionId`, `documentId`, `filename`, `sourceType`
-- Atlas Search text index for:
-  - `text`, `filename`, `sourceType`
-- Mongo B-tree indexes for common ownership/time/document queries.
+## 8. Environment Configuration
 
-Why hybrid retrieval:
-- Vector search captures semantic similarity.
-- Text search captures exact symbol/key-term matches.
-- RRF combines both to reduce single-method blind spots.
+### Frontend env vars
 
----
-
-## 8. Frontend State and UX Mechanics
-
-## 8.1 Main Landing Page (`page.tsx`)
-
-Key state groups:
-- Auth/user state from `AuthProvider`
-- Session state (`sessionId`, in-session docs)
-- Account document inventory (`allUserDocs`)
-- Prompt/Q&A state (`promptInput`, `askResponse`, errors, loading)
-- Summary state (`summary`, resummarize flow)
-- TTS state (`ttsEnabled`, `ttsLoading`, speaking state)
-- Mode toggle (`conversationMode`)
-
-Interaction pattern:
-1. Load user docs after auth.
-2. Filter docs by current ephemeral session for “Uploaded in this session”.
-3. Ask questions scoped to current session.
-4. Show Gemini answer above summary section.
-5. Optional voice playback and citation disclosure.
-
-## 8.2 Conversation Workspace
-
-Core features:
-- Document picker with all-files option
-- Multi-turn chat
-- Source breakdown per assistant response
-- Per-message voice playback
-- In-place upload and delete
-
----
-
-## 9. Environment Configuration
-
-## 9.1 Frontend (`.env` at repo root)
-
-Required for auth:
 - `VITE_API_BASE_URL`
 - `VITE_FIREBASE_API_KEY`
 - `VITE_FIREBASE_AUTH_DOMAIN`
@@ -411,151 +239,87 @@ Required for auth:
 - `VITE_FIREBASE_STORAGE_BUCKET`
 - `VITE_FIREBASE_MESSAGING_SENDER_ID`
 - `VITE_FIREBASE_APP_ID`
-- `VITE_FIREBASE_MEASUREMENT_ID` (optional in many setups)
+- `VITE_FIREBASE_MEASUREMENT_ID`
 
-## 9.2 Backend (`server/.env`)
+### Backend env vars (document/chat stack)
 
-Core:
 - `MONGODB_URI`
 - `GEMINI_API_KEY`
-
-TTS:
 - `ELEVENLABS_API_KEY`
-- `ELEVENLABS_VOICE_ID` (optional)
-
-Firebase Admin verification:
+- `ELEVENLABS_VOICE_ID`
 - `FIREBASE_PROJECT_ID`
 - `FIREBASE_CLIENT_EMAIL`
-- `FIREBASE_PRIVATE_KEY` (newline-escaped in env)
+- `FIREBASE_PRIVATE_KEY`
 
-Security requirement:
-- Never commit real keys to source control.
-- Rotate any previously exposed credentials.
+### Backend env vars (new portfolio stack)
 
----
+- `NEWS_API_URL`
+- `NEWS_API_KEY`
+- `MARKET_DATA_API_URL`
+- `MARKET_DATA_API_KEY`
+- `SEC_USER_AGENT`
+- `PORTFOLIO_CACHE_TTL_MS` (optional numeric override)
+- `PORTFOLIO_NEWS_LIMIT` (optional numeric override)
 
-## 10. Local Development Runbook
+### Security note
 
-From repository root:
-```bash
-npm install
-npm run dev
-```
+Keep all secrets in local environment configuration and never commit real credentials.
 
-Backend in separate terminal:
-```bash
-cd server
-npm install
-npm run setup:indexes
-npm start
-```
+## 9. Run, Build, and Test Commands
 
-Expected local URLs:
-- Frontend: Vite default (`http://localhost:5173` unless changed)
-- Backend: `http://localhost:5050`
+### Frontend/root
 
-Build check:
-```bash
-npm run build
-```
+- `npm install`
+- `npm run dev`
+- `npm run build`
+- `npm run preview`
+- `npm run typecheck`
+- `npm run lint`
+- `npm test` (new; runs backend Node tests via `npm --prefix server test`)
 
-Optional quality checks:
-```bash
-npm run typecheck
-npm run lint
-```
+### Backend
 
----
+From `server` directory:
 
-## 11. Complex Technical Details and Design Rationale
+- `npm install`
+- `npm start`
+- `npm run setup:indexes`
+- `npm test`
 
-### 11.1 Account persistence vs session isolation
-- Auth persists through Firebase login state.
-- Session ID is lightweight client-generated context marker.
-- This enables:
-  - durable account-level storage
-  - temporary “uploaded this session” UX filtering
+## 10. Current Implementation Status (Verified March 8, 2026)
 
-### 11.2 Retrieval fallback behavior
-If strict scoped retrieval returns no chunks, `rag.js` can:
-- retry without server-side vector filter (then locally post-filter)
-- fallback to recent chunks in scope
-This prevents hard failures from index lag/misconfiguration and broad prompts.
+### Command health
 
-### 11.3 Response sanitation
-Frontend strips model artifacts from responses:
-- chunk markers like `[1]`
-- markdown emphasis symbols
-- punctuation spacing issues
-This improves readability while citations remain available in a dedicated panel.
+- `npm test`: passes (7 tests)
+- `npm run build`: passes
+- `npm run typecheck`: fails
+  - `src/components/ui/sidebar.tsx` type-only import issue
+  - `src/components/ui/sonner.tsx` type-only import issue
+- `npm run lint`: fails
+  - Existing `any` usages
+  - `react-refresh/only-export-components` violations
+  - React purity/effect warnings in shared UI/auth files
 
-### 11.4 Presentation generation reliability
-Gemini output is constrained with a strict JSON schema request.
-The server then validates parseability and slide array presence before rendering.
+### Functional status
 
----
+- Core document intelligence pipeline remains operational.
+- Portfolio analysis end-to-end path is implemented and user-accessible from the landing page.
+- Portfolio pipeline includes source fallback and payload normalization safeguards.
+- Generated portfolio response explicitly includes a non-advisory disclaimer.
 
-## 12. Known Limitations and Technical Debt
+## 11. Known Risks and Technical Debt
 
-- `POST /chat` is not auth-scoped like `/ask`; treat as legacy path.
-- File upload currently accepts PDF and TXT in frontend component; product policy may require PDF-only.
-- Some repository artifacts are legacy/non-runtime (`src/app/layout.tsx`, `src/components/ChatBox.tsx`, `next.config.mjs`).
-- Root README is still default Vite template; operational docs live in this file.
-- No formal automated test suite is wired in root scripts; backend `test` script is placeholder.
+- Runtime structure still mixes Next-style folder naming with a Vite runtime path.
+- `src/App.tsx` uses `ThemeProvider defaultTheme="dark"` while `src/app/layout.tsx` is configured for light and is not the live runtime shell.
+- `POST /chat` remains behaviorally separate from authenticated scoped `/ask`.
+- Portfolio cache is in-memory only (no shared/distributed cache).
+- Provider configuration warning checks do not fully enforce all provider keys at runtime.
+- Build currently succeeds while typecheck/lint fail, so CI signal is incomplete.
 
----
+## 12. Recommended Next Steps
 
-## 13. Production Hardening Checklist
-
-- Move all secrets into managed environment variables (no plaintext in repo).
-- Add rate limiting and request-size limits on upload and ask endpoints.
-- Enforce file-type and file-size constraints server-side.
-- Add structured logs for upload, retrieval, and LLM latency/cost telemetry.
-- Add request tracing IDs for cross-service debugging.
-- Add integration tests for:
-  - auth middleware
-  - upload parse/chunk/embed pipeline
-  - retrieval scoping by `userId` and `documentId`
-  - summary regeneration
-  - TTS fallback behavior
-- Add CI gates for `build`, `typecheck`, `lint`.
-
----
-
-## 14. Quick Troubleshooting
-
-### Google sign-in fails in production
-- Add deployed domain in Firebase Console:
-  - Authentication -> Settings -> Authorized domains
-- Verify all `VITE_FIREBASE_*` values are from same Firebase project.
-
-### `Cannot POST /portfolio/analyze` style errors
-- That route is not in current active backend tree; use existing documented routes.
-
-### Upload succeeds but no answer found
-- Ensure chunks exist for same `userId` and scope (`documentId`/`sessionId`).
-- Verify vector/text indexes are set up (`npm run setup:indexes` in `server`).
-
-### ElevenLabs 401
-- Check `ELEVENLABS_API_KEY` and account access.
-- UI should fallback to browser speech where available.
-
-### Firebase Admin misconfigured
-- Confirm `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` in `server/.env`.
-- Ensure private key keeps escaped newlines (`\n`) in env string.
-
----
-
-## 15. Feature Summary (Executive)
-
-Implemented primary capabilities:
-- Google-authenticated document ownership
-- Upload -> parse -> chunk -> embed -> store pipeline
-- Hybrid RAG retrieval with citations
-- Recurring conversation mode with per-file scope
-- AI financial briefing generation and regeneration
-- Voice playback via ElevenLabs + browser fallback
-- AI presentation generation and PowerPoint export
-
-Net effect:
-- FinVoice currently functions as an authenticated, citation-aware financial document copilot with voice and presentation extensions.
+- Add/extend MongoDB indexes for new portfolio collections (`portfolioAnalyses`, `portfolioJobs`, `newsArticles`, `companySnapshots`) based on query patterns.
+- Add tests for portfolio route handlers (`/portfolio/analyze`, `/portfolio/history`, `/portfolio/analysis/:ticker`) including auth and error paths.
+- Close current TypeScript and ESLint failures to restore trusted quality gates.
+- Decide whether to secure, deprecate, or remove `POST /chat` in favor of `/ask`.
+- Consolidate runtime architecture and theming defaults so there is one canonical shell path.

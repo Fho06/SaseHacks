@@ -3,21 +3,28 @@ import multer from "multer"
 import cors from "cors"
 import { createRequire } from "module"
 import { randomUUID } from "crypto"
-import { answerQuestion } from "./rag.js"
-import { chunkText } from "./chunker.js"
-import { embedText } from "./embeddings.js"
+import { answerQuestion } from "./services/rag.js"
+import { chunkText } from "./services/chunker.js"
+import { embedText } from "./services/embeddings.js"
 import { verifyFirebaseAuth } from "./auth.js"
-import { db } from "./mongodb.js"
-import { CHUNKS_COLLECTION, SUMMARIES_COLLECTION } from "./search-indexes.js"
-import { generateSpeech } from "./tts.js"
-import { handleChat } from "./chat.js"
-import { generateFinancialSummary } from "./summarizer.js"
-import presentationRoutes from "./presentation-routes.js"
+import { db } from "./config/mongodb.js"
+import { CHUNKS_COLLECTION, SUMMARIES_COLLECTION } from "./search/search-indexes.js"
+import { generateSpeech } from "./services/tts.js"
+import { handleChat } from "./routes/chat.js"
+import { generateFinancialSummary } from "./services/summarizer.js"
+import presentationRoutes from "./routes/presentation-routes.js"
+import portfolioRoutes from "./portfolio/routes.js"
+import { validatePortfolioConfigAtStartup } from "./portfolio/config.js"
 
 const require = createRequire(import.meta.url)
 const pdfParse = require("pdf-parse")
 
 const app = express()
+const portfolioConfigWarnings = validatePortfolioConfigAtStartup()
+
+for (const warning of portfolioConfigWarnings) {
+  console.warn(`[portfolio-config] ${warning}`)
+}
 
 function getSpeechErrorMessage(err) {
   const fallback = "Speech generation failed"
@@ -42,6 +49,7 @@ function getSpeechErrorMessage(err) {
 app.use(cors())
 app.use(express.json())
 app.use("/presentation", presentationRoutes)
+app.use("/portfolio", verifyFirebaseAuth, portfolioRoutes)
 app.get("/", (_req, res) => {
   res.json({ status: "server running" })
 })

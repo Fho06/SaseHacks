@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "setup:indexes": "node scripts/setup-indexes.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test tests/**/*.test.js"
   },
   "keywords": [],
   "author": "",
@@ -18,11 +18,14 @@
     "dotenv": "^17.3.1",
     "elevenlabs": "^1.59.0",
     "express": "^5.2.1",
+    "firebase": "^12.10.0",
     "firebase-admin": "^13.7.0",
     "mongodb": "^7.1.0",
     "multer": "^2.1.1",
     "pdf-parse": "^2.4.5",
     "pptxgenjs": "^4.0.1",
+    "redis": "^5.9.0",
+    "sasehacks": "file:..",
     "sharp": "^0.34.5"
   }
 }

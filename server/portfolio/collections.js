@@ -1,0 +1,6 @@
+export const COMPANY_PROFILES_COLLECTION = "companyProfiles"
+export const NEWS_ARTICLES_COLLECTION = "newsArticles"
+export const COMPANY_SNAPSHOTS_COLLECTION = "companySnapshots"
+export const PORTFOLIO_ANALYSES_COLLECTION = "portfolioAnalyses"
+export const PORTFOLIO_JOBS_COLLECTION = "portfolioJobs"
+export const PORTFOLIO_SOURCE_AUDIT_COLLECTION = "portfolioSourceAudits"
