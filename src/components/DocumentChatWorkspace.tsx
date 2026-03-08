@@ -1,5 +1,6 @@
-﻿import { useMemo, useRef, useState, type FormEvent } from "react"
-import { ArrowLeft, FileText, Send, Trash2 } from "lucide-react"
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
+import { ArrowLeft, FileText, Moon, Play, Send, Square, Sun, Trash2, Volume2, VolumeX } from "lucide-react"
+import { useTheme } from "next-themes"
 import FileUpload, { type UploadedDocument } from "@/components/FileUpload"
 import { Button } from "@/components/ui/button"
 
@@ -31,7 +32,7 @@ function formatAnswerText(raw: string) {
     .replace(/\[\d+\]/g, "")
     .replace(/\*\*/g, "")
     .replace(/(^|\s)\*(?=\S)/g, "$1")
-    .replace(/[â€¢Â·]/g, "")
+    .replace(/[\u2022\u00B7]/g, "")
     .replace(/\s+,/g, ",")
     .replace(/\s+\./g, ".")
     .replace(/\s+:/g, ":")
@@ -63,6 +64,7 @@ export default function DocumentChatWorkspace({
   initialUploadedDocs = [],
   onBack
 }: DocumentChatWorkspaceProps) {
+  const { theme, setTheme } = useTheme()
   const [sessionId, setSessionId] = useState(initialSessionId || "")
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDocument[]>(initialUploadedDocs)
   const [selectedDocumentId, setSelectedDocumentId] = useState<string>(ALL_FILES_ID)
@@ -76,7 +78,13 @@ export default function DocumentChatWorkspace({
   const [input, setInput] = useState("")
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [ttsEnabled, setTtsEnabled] = useState(true)
+  const [ttsLoading, setTtsLoading] = useState(false)
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null)
   const viewportRef = useRef<HTMLDivElement | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const audioUrlRef = useRef<string | null>(null)
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
 
   const selectedDoc = useMemo(
     () => uploadedDocs.find((doc) => doc.documentId === selectedDocumentId) || null,
@@ -86,6 +94,117 @@ export default function DocumentChatWorkspace({
   const selectedScopeLabel = selectedDocumentId === ALL_FILES_ID
     ? "All uploaded files"
     : selectedDoc?.filename || "Selected file"
+
+  function stopSpeech() {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel()
+      utteranceRef.current = null
+    }
+
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+      audioRef.current = null
+    }
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current)
+      audioUrlRef.current = null
+    }
+
+    setTtsLoading(false)
+    setSpeakingMessageId(null)
+  }
+
+  function speakWithBrowserTts(text: string, messageId: string) {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      throw new Error("Speech synthesis is unavailable in this browser")
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.rate = 1
+    utterance.pitch = 1
+    utterance.volume = 1
+    utterance.onstart = () => {
+      setTtsLoading(false)
+      setSpeakingMessageId(messageId)
+    }
+    utterance.onend = () => setSpeakingMessageId(null)
+    utterance.onerror = () => setSpeakingMessageId(null)
+
+    utteranceRef.current = utterance
+    window.speechSynthesis.speak(utterance)
+  }
+
+  async function speakText(text: string, messageId: string) {
+    const cleaned = text.trim()
+    if (!cleaned || !ttsEnabled) return
+
+    stopSpeech()
+    setTtsLoading(true)
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/speech`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ text: cleaned })
+      })
+
+      if (!response.ok) {
+        let message = "Unable to generate speech"
+        try {
+          const payload = await response.json()
+          if (typeof payload?.error === "string" && payload.error.trim()) {
+            message = payload.error.trim()
+          }
+        } catch {
+          // keep fallback message when body is not JSON
+        }
+        throw new Error(message)
+      }
+
+      const blob = await response.blob()
+      if (!blob.size) {
+        throw new Error("Received empty audio response")
+      }
+      const audioUrl = URL.createObjectURL(blob)
+      const audio = new Audio(audioUrl)
+      audioUrlRef.current = audioUrl
+      audioRef.current = audio
+
+      audio.onended = () => setSpeakingMessageId(null)
+      audio.onpause = () => setSpeakingMessageId(null)
+      audio.onplay = () => {
+        setTtsLoading(false)
+        setSpeakingMessageId(messageId)
+      }
+
+      await audio.play()
+    } catch (playError) {
+      try {
+        speakWithBrowserTts(cleaned, messageId)
+        const reason = playError instanceof Error ? playError.message : "ElevenLabs unavailable"
+        setError(`ElevenLabs unavailable (${reason}). Using browser voice.`)
+      } catch (fallbackError) {
+        const reason = fallbackError instanceof Error ? fallbackError.message : "Unable to play speech"
+        setError(reason)
+        stopSpeech()
+      }
+    } finally {
+      setTtsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    return () => stopSpeech()
+  }, [])
+
+  useEffect(() => {
+    if (!ttsEnabled) {
+      stopSpeech()
+    }
+  }, [ttsEnabled])
 
   async function handleRemoveDocument(documentId: string) {
     if (!sessionId) return
@@ -197,7 +316,32 @@ export default function DocumentChatWorkspace({
               <p className="text-xs text-muted-foreground">RAG answers grounded in your uploaded files</p>
             </div>
           </div>
-          <span className="rounded-md border border-border/60 px-2 py-1 text-xs text-muted-foreground">Gemini + Atlas</span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setTtsEnabled((prev) => !prev)}
+              className={`flex h-9 items-center gap-1 rounded-lg border px-2 text-xs transition-colors ${
+                ttsEnabled
+                  ? "border-primary/40 bg-primary/15 text-primary"
+                  : "border-border/60 bg-background/40 text-muted-foreground hover:bg-secondary"
+              }`}
+              title="Toggle text to speech"
+            >
+              {ttsEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+              <span>{ttsEnabled ? "TTS On" : "TTS Off"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              aria-label="Toggle theme"
+              title="Toggle light/dark mode"
+            >
+              <Sun className="h-4 w-4 hidden dark:block" />
+              <Moon className="h-4 w-4 block dark:hidden" />
+            </button>
+            <span className="rounded-md border border-border/60 px-2 py-1 text-xs text-muted-foreground">Gemini + Atlas</span>
+          </div>
         </div>
       </header>
 
@@ -283,6 +427,34 @@ export default function DocumentChatWorkspace({
                       <p>{message.content}</p>
                       {message.scopeLabel ? (
                         <p className="mt-2 text-[11px] text-muted-foreground">Scope: {message.scopeLabel}</p>
+                      ) : null}
+                      {message.role === "assistant" ? (
+                        <div className="mt-2 flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (speakingMessageId === message.id) {
+                                stopSpeech()
+                              } else if (!ttsLoading) {
+                                void speakText(message.content, message.id)
+                              }
+                            }}
+                            disabled={!ttsEnabled || ttsLoading || !message.content.trim()}
+                            className="flex h-7 items-center gap-1 rounded-md border border-border/60 bg-background/40 px-2 text-[11px] text-muted-foreground transition-colors enabled:hover:bg-secondary/40 enabled:hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {speakingMessageId === message.id ? (
+                              <>
+                                <Square className="h-3.5 w-3.5" />
+                                <span>Stop</span>
+                              </>
+                            ) : (
+                              <>
+                                <Play className="h-3.5 w-3.5" />
+                                <span>{ttsLoading ? "Loading..." : "Play voice"}</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
                       ) : null}
                       {message.role === "assistant" && (message.sources?.length || 0) > 0 ? (
                         <details className="mt-2 rounded-md border border-border/60 bg-background/50 p-2">
