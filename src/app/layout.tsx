@@ -6,7 +6,7 @@ import { ThemeProvider } from 'next-themes'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'FinVoice Copilot - Voice-Enabled Financial Document Intelligence',
+  title: 'FinVoice AI - Voice-Enabled Financial Document Intelligence',
   description: 'Upload financial documents and ask questions. Get grounded answers with citations and voice playback powered by RAG and Gemini API.',
   generator: 'v0.app',
   icons: {

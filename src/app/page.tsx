@@ -358,10 +358,8 @@ export default function FinVoiceLanding() {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
-                FV
-              </div>
-              <span className="text-lg font-semibold tracking-tight hidden sm:block">FinVoice Copilot</span>
+              <img src="/logo.png" alt="FinVoice logo" className="h-8 w-8 rounded-md object-contain" />
+              <span className="text-lg font-semibold tracking-tight hidden sm:block">FinVoice AI</span>
             </div>
             <nav className="hidden lg:flex items-center gap-6">
               <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -601,7 +599,7 @@ export default function FinVoiceLanding() {
                   <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
                   <div className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
                 </div>
-                <span className="text-xs text-muted-foreground font-mono flex-1 text-left">FinVoice Copilot Dashboard</span>
+                <span className="text-xs text-muted-foreground font-mono flex-1 text-left">FinVoice AI Dashboard</span>
               </div>
               <div className="grid grid-cols-4 gap-px bg-border/20">
                 {/* Left Sidebar */}
@@ -692,7 +690,7 @@ export default function FinVoiceLanding() {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-balance">The financial intelligence challenge</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto text-balance">
-              Financial documents are dense, slow to review, and generic AI tools hallucinate. FinVoice Copilot solves this with explainable, grounded analysis.
+              Financial documents are dense, slow to review, and generic AI tools hallucinate. FinVoice AI solves this with explainable, grounded analysis.
             </p>
           </div>
 
@@ -899,7 +897,7 @@ export default function FinVoiceLanding() {
 
           <div className="max-w-3xl mx-auto bg-secondary/30 border border-border/50 rounded-lg p-8">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              <strong>Architecture:</strong> FinVoice Copilot uses MongoDB Atlas for document storage and vector embeddings, Gemini for semantic understanding and answer generation, and ElevenLabs for natural voice synthesis. Our RAG pipeline ensures every answer is grounded in source documents, not hallucinations. Deployed on Vercel for sub-100ms response times and built with Next.js for seamless full-stack development.
+              <strong>Architecture:</strong> FinVoice AI uses MongoDB Atlas for document storage and vector embeddings, Gemini for semantic understanding and answer generation, and ElevenLabs for natural voice synthesis. Our RAG pipeline ensures every answer is grounded in source documents, not hallucinations. Deployed on Vercel for sub-100ms response times and built with Next.js for seamless full-stack development.
             </p>
           </div>
         </div>
@@ -911,7 +909,7 @@ export default function FinVoiceLanding() {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-balance">Built for trust and transparency</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto text-balance">
-              FinVoice Copilot is a research assistant, not financial advice.
+              FinVoice AI is a research assistant, not financial advice.
             </p>
           </div>
 
@@ -930,7 +928,7 @@ export default function FinVoiceLanding() {
               {
                 icon: Award,
                 title: "Research Tool Only",
-                desc: "FinVoice Copilot does not provide investment advice. It accelerates research and due diligence.",
+                desc: "FinVoice AI does not provide investment advice. It accelerates research and due diligence.",
               },
             ].map((item, i) => (
               <Card key={i} className="bg-card/50 border-border/50">
@@ -947,7 +945,7 @@ export default function FinVoiceLanding() {
 
           <div className="max-w-2xl mx-auto mt-12 p-6 bg-primary/5 border border-primary/20 rounded-lg text-center">
             <p className="text-xs text-muted-foreground italic">
-              <strong>Disclaimer:</strong> FinVoice Copilot is a document intelligence and research assistant. It does not provide financial advice, investment recommendations, or analysis. Always verify findings with original documents and consult a financial advisor.
+              <strong>Disclaimer:</strong> FinVoice AI is a document intelligence and research assistant. It does not provide financial advice, investment recommendations, or analysis. Always verify findings with original documents and consult a financial advisor.
             </p>
           </div>
         </div>
@@ -958,7 +956,7 @@ export default function FinVoiceLanding() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-balance">Try these questions</h2>
-            <p className="text-muted-foreground">See what FinVoice Copilot can do with real documents.</p>
+            <p className="text-muted-foreground">See what FinVoice AI can do with real documents.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-12">
@@ -1009,7 +1007,7 @@ export default function FinVoiceLanding() {
           <div className="max-w-3xl mx-auto text-center border border-border/50 bg-secondary/30">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-balance">Ready to unlock financial intelligence?</h2>
             <p className="text-muted-foreground mb-8 max-w-xl mx-auto text-balance">
-              Join researchers and analysts using FinVoice Copilot to accelerate due diligence and investment analysis.
+              Join researchers and analysts using FinVoice AI to accelerate due diligence and investment analysis.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
@@ -1032,9 +1030,7 @@ export default function FinVoiceLanding() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div className="md:col-span-1">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
-                  FV
-                </div>
+                <img src="/logo.png" alt="FinVoice logo" className="h-8 w-8 rounded-md object-contain" />
                 <span className="font-semibold">FinVoice</span>
               </div>
               <p className="text-xs text-muted-foreground">Voice-enabled financial document intelligence.</p>
@@ -1102,7 +1098,7 @@ export default function FinVoiceLanding() {
           </div>
           <div className="border-t border-border/30 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-xs text-muted-foreground text-center md:text-left">
-              (c) 2024 FinVoice Copilot. Built for financial intelligence. Not investment advice.
+              (c) 2024 FinVoice AI. Built for financial intelligence. Not investment advice.
             </p>
             <p className="text-xs text-muted-foreground">Hackathon MVP - Powered by RAG & Gemini</p>
           </div>
