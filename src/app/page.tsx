@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import FileUpload, { type UploadedDocument } from "@/components/FileUpload"
 import DocumentChatWorkspace from "@/components/DocumentChatWorkspace"
+import LoginButton from "@/components/LoginButton"
+import { getAuthHeader } from "@/lib/api-auth"
+import { useAuth } from "@/providers/AuthProvider"
 import {
   ArrowRight,
   AlertCircle,
@@ -86,29 +89,54 @@ const TechStackBadge = ({ label, icon: Icon }: { label: string; icon: ReactNode 
 )
 
 export default function FinVoiceLanding() {
+  const { user } = useAuth()
   const [promptInput, setPromptInput] = useState("")
   const [sessionId, setSessionId] = useState("")
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDocument[]>([])
-  const [uploadedCount, setUploadedCount] = useState(0)
   const [isAsking, setIsAsking] = useState(false)
   const [askError, setAskError] = useState<string | null>(null)
   const [askResponse, setAskResponse] = useState<AskResponse | null>(null)
   const [summary, setSummary] = useState<FinancialSummary | null>(null)
   const [isResummarizing, setIsResummarizing] = useState(false)
   const [documentId, setDocumentId] = useState<string | null>(null)
-  const chatInputRef = useRef<HTMLInputElement | null>(null)
-  const chatSectionRef = useRef<HTMLDivElement | null>(null)
+  const uploadedCount = uploadedDocs.length
 
   useEffect(() => {
-    if (uploadedCount > 0 && chatSectionRef.current) {
-      chatSectionRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      })
+    async function loadUserDocuments() {
+      if (!user) {
+        setSessionId("")
+        setUploadedDocs([])
+        setSummary(null)
+        setDocumentId(null)
+        return
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/documents`, {
+          method: "GET",
+          headers: {
+            ...(await getAuthHeader())
+          }
+        })
+        const payload = await response.json()
+        if (!response.ok) {
+          throw new Error(payload?.error || "Failed to load documents")
+        }
+
+        const docs: UploadedDocument[] = Array.isArray(payload?.files) ? payload.files : []
+        setUploadedDocs(docs)
+        setSessionId(docs[0]?.sessionId || "")
+        setDocumentId(docs[0]?.documentId || null)
+        setSummary(docs[0]?.summary || null)
+      } catch (error) {
+        setAskError(error instanceof Error ? error.message : "Failed to load documents")
+      }
     }
-  }, [uploadedCount])
+
+    void loadUserDocuments()
+  }, [user])
   const [conversationMode, setConversationMode] = useState(false)
-  const [ttsEnabled, setTtsEnabled] = useState(true)
+  const [ttsEnabled, setTtsEnabled] = useState(false)
   const [ttsLoading, setTtsLoading] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -212,6 +240,12 @@ export default function FinVoiceLanding() {
   }, [])
 
   useEffect(() => {
+    if (!ttsEnabled) {
+      stopSpeech()
+    }
+  }, [ttsEnabled])
+
+  useEffect(() => {
     function isTypingTarget(target: EventTarget | null) {
       const element = target as HTMLElement | null
       if (!element) return false
@@ -257,8 +291,8 @@ export default function FinVoiceLanding() {
     event.preventDefault()
     const trimmedPrompt = promptInput.trim()
     if (!trimmedPrompt) return
-    if (!sessionId || uploadedCount === 0) {
-      setAskError("Upload at least one document in this session before asking a question.")
+    if (uploadedCount === 0) {
+      setAskError("Upload at least one document before asking a question.")
       return
     }
 
@@ -269,11 +303,11 @@ export default function FinVoiceLanding() {
       const response = await fetch(`${API_BASE_URL}/ask`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          ...(await getAuthHeader())
         },
         body: JSON.stringify({
           question: trimmedPrompt,
-          sessionId,
           hybrid: true,
           limit: 5
         })
@@ -303,7 +337,10 @@ export default function FinVoiceLanding() {
 
     try {
       const res = await fetch(`${API_BASE_URL}/resummarize/${documentId}`, {
-        method: "POST"
+        method: "POST",
+        headers: {
+          ...(await getAuthHeader())
+        }
       })
       const data = await res.json()
 
@@ -357,6 +394,7 @@ export default function FinVoiceLanding() {
             </nav>
           </div>
           <div className="flex items-center gap-3">
+            <LoginButton />
             <ThemeToggle />
             <a
               href="https://github.com"
@@ -365,11 +403,14 @@ export default function FinVoiceLanding() {
             >
               <Github className="h-4 w-4" />
             </a>
-            <Button asChild size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
-              <a href="#demo">
-                Try Demo
-                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-              </a>
+            <Button
+              type="button"
+              size="sm"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={() => setConversationMode(true)}
+            >
+              Conversation Mode
+              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
@@ -394,22 +435,30 @@ export default function FinVoiceLanding() {
               <div className="rounded-2xl border border-border/50 bg-card/40 p-3 text-left outline-accent">
                 <p className="mb-2 text-sm font-medium">Upload financial documents for context</p>
                 <FileUpload
-                  onSessionUpdate={({ sessionId: nextSessionId, uploadedDocs, summaries }) => {
+                  sessionId={sessionId || undefined}
+                  initialUploadedDocs={uploadedDocs}
+                  onSessionUpdate={({ sessionId: nextSessionId, uploadedDocs, summaries, action }) => {
                     setSessionId(nextSessionId)
                     setUploadedDocs(uploadedDocs)
-                    setUploadedCount(uploadedDocs.length)
 
                     if (uploadedDocs.length > 0) {
-                      setDocumentId(uploadedDocs[0].documentId)
+                      const latestDoc = uploadedDocs[uploadedDocs.length - 1]
+                      setDocumentId(latestDoc.documentId)
+
+                      if (action === "upload") {
+                        setSummary(null)
+                        void handleResummarize(latestDoc.documentId)
+                        return
+                      }
                     }
 
                     if (Array.isArray(summaries) && summaries.length > 0) {
-                      setSummary(summaries[0])
+                      setSummary(summaries[summaries.length - 1])
                     }
                   }}
                 />
               </div>
-              <div ref={chatSectionRef} className="scroll-mt-24">
+              <div className="scroll-mt-24">
                 <form onSubmit={handlePromptSubmit} className="flex flex-col sm:flex-row gap-3">
                   <input
                     type="text"
@@ -432,6 +481,77 @@ export default function FinVoiceLanding() {
                     : "Upload documents to activate RAG-backed question answering."}
               </p>
 
+              {askResponse ? (
+                <div className="rounded-xl border border-border/60 bg-secondary/25 p-4 text-left">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Gemini Answer</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setTtsEnabled((prev) => {
+                          const next = !prev
+                          if (!next) {
+                            stopSpeech()
+                          }
+                          return next
+                        })}
+                        className={`rounded-md border px-2 py-1 text-xs transition-colors ${
+                          ttsEnabled
+                            ? "border-primary/40 bg-primary/15 text-primary"
+                            : "border-border/60 bg-background/40 text-muted-foreground"
+                        }`}
+                        title="Toggle text to speech (Alt+M)"
+                      >
+                        TTS {ttsEnabled ? "On" : "Off"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isSpeaking) {
+                            stopSpeech()
+                          } else if (askResponse.answer && ttsEnabled && !ttsLoading) {
+                            void speakText(askResponse.answer)
+                          }
+                        }}
+                        disabled={!ttsEnabled || ttsLoading || !askResponse.answer}
+                        className="rounded-md border border-border/60 bg-background/40 px-2 py-1 text-xs text-foreground transition-colors enabled:hover:bg-secondary/40 disabled:cursor-not-allowed disabled:opacity-50"
+                        title="Play or stop speech (Alt+P, Esc)"
+                      >
+                        {ttsLoading ? "Loading voice..." : isSpeaking ? "Stop Voice" : "Play Voice"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          stopSpeech()
+                          setConversationMode(true)
+                        }}
+                        className="rounded-md border border-border/60 bg-background/40 px-2 py-1 text-xs text-foreground transition-colors hover:bg-secondary/40"
+                        title="Open recurring conversation mode"
+                      >
+                        Conversation Mode
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-sm leading-relaxed mb-3">{askResponse.answer}</p>
+                  <p className="mb-3 text-[11px] text-muted-foreground">
+                    Shortcuts: `Alt+M` toggle TTS, `Alt+P` play/stop latest answer, `Esc` stop.
+                  </p>
+                  {askResponse.sources.length > 0 ? (
+                    <details className="rounded-md border border-border/60 bg-background/40 p-2">
+                      <summary className="cursor-pointer text-xs uppercase tracking-wide text-muted-foreground">
+                        View Citations ({askResponse.sources.length})
+                      </summary>
+                      <div className="space-y-1 pt-2">
+                        {askResponse.sources.slice(0, 8).map((source, idx) => (
+                          <p key={`${source.documentId || "doc"}-${idx}`} className="text-xs text-muted-foreground">
+                            [{idx + 1}] {source.filename || "unknown"} (chunk {source.chunkIndex ?? "n/a"})
+                          </p>
+                        ))}
+                      </div>
+                    </details>
+                  ) : null}
+                </div>
+              ) : null}
               {uploadedCount > 0 && !summary && (
                 <div className="rounded-xl border border-border/60 bg-secondary/25 p-4 text-sm text-muted-foreground">
                   Generating AI financial briefing...
@@ -492,75 +612,7 @@ export default function FinVoiceLanding() {
                   </div>
                 </div>
               )}
-              
-              {summary && (
-                <PresentationGenerator briefing={summary} />
-              )}
-              {askResponse ? (
-                <div className="rounded-xl border border-border/60 bg-secondary/25 p-4 text-left">
-                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Gemini Answer</p>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setTtsEnabled((prev) => !prev)}
-                        className={`rounded-md border px-2 py-1 text-xs transition-colors ${
-                          ttsEnabled
-                            ? "border-primary/40 bg-primary/15 text-primary"
-                            : "border-border/60 bg-background/40 text-muted-foreground"
-                        }`}
-                        title="Toggle text to speech (Alt+M)"
-                      >
-                        TTS {ttsEnabled ? "On" : "Off"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (isSpeaking) {
-                            stopSpeech()
-                          } else if (askResponse.answer && ttsEnabled && !ttsLoading) {
-                            void speakText(askResponse.answer)
-                          }
-                        }}
-                        disabled={!ttsEnabled || ttsLoading || !askResponse.answer}
-                        className="rounded-md border border-border/60 bg-background/40 px-2 py-1 text-xs text-foreground transition-colors enabled:hover:bg-secondary/40 disabled:cursor-not-allowed disabled:opacity-50"
-                        title="Play or stop speech (Alt+P, Esc)"
-                      >
-                        {ttsLoading ? "Loading voice..." : isSpeaking ? "Stop Voice" : "Play Voice"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          stopSpeech()
-                          setConversationMode(true)
-                        }}
-                        className="rounded-md border border-border/60 bg-background/40 px-2 py-1 text-xs text-foreground transition-colors hover:bg-secondary/40"
-                        title="Open recurring conversation mode"
-                      >
-                        Conversation Mode
-                      </button>
-                    </div>
-                  </div>
-                  <p className="text-sm leading-relaxed mb-3">{askResponse.answer}</p>
-                  <p className="mb-3 text-[11px] text-muted-foreground">
-                    Shortcuts: `Alt+M` toggle TTS, `Alt+P` play/stop latest answer, `Esc` stop.
-                  </p>
-                  {askResponse.sources.length > 0 ? (
-                    <details className="rounded-md border border-border/60 bg-background/40 p-2">
-                      <summary className="cursor-pointer text-xs uppercase tracking-wide text-muted-foreground">
-                        View Citations ({askResponse.sources.length})
-                      </summary>
-                      <div className="space-y-1 pt-2">
-                        {askResponse.sources.slice(0, 8).map((source, idx) => (
-                          <p key={`${source.documentId || "doc"}-${idx}`} className="text-xs text-muted-foreground">
-                            [{idx + 1}] {source.filename || "unknown"} (chunk {source.chunkIndex ?? "n/a"})
-                          </p>
-                        ))}
-                      </div>
-                    </details>
-                  ) : null}
-                </div>
-              ) : null}
+              {summary ? <PresentationGenerator briefing={summary} /> : null}
             </div>
             <div className="flex flex-wrap justify-center gap-2">
               <TechStackBadge label="MongoDB Atlas" icon={<Database className="h-3.5 w-3.5 text-primary" />} />

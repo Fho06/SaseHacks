@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useDropzone } from "react-dropzone"
+import { getAuthHeader } from "@/lib/api-auth"
 
 export type UploadedDocument = {
   sessionId: string
@@ -17,6 +18,7 @@ type FileUploadProps = {
     sessionId: string
     uploadedDocs: UploadedDocument[]
     summaries?: FinancialSummary[]
+    action?: "upload" | "delete"
   }) => void
 }
 
@@ -48,16 +50,18 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5050
 
 export default function FileUpload({
   sessionId: providedSessionId,
-  initialUploadedDocs = [],
+  initialUploadedDocs,
   showInternalLists = true,
   onSessionUpdate
 }: FileUploadProps) {
   const [generatedSessionId] = useState(() => makeSessionId())
   const sessionId = providedSessionId || generatedSessionId
   const [queuedFiles, setQueuedFiles] = useState<File[]>([])
-  const [uploadedDocs, setUploadedDocs] = useState<UploadedDocument[]>(initialUploadedDocs)
+  const [internalUploadedDocs, setInternalUploadedDocs] = useState<UploadedDocument[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const isControlled = Array.isArray(initialUploadedDocs)
+  const uploadedDocs = isControlled ? (initialUploadedDocs as UploadedDocument[]) : internalUploadedDocs
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => {
@@ -71,17 +75,22 @@ export default function FileUpload({
     multiple: true
   })
 
-  useEffect(() => {
-    const summaries = uploadedDocs
+  function pushUpdate(nextUploadedDocs: UploadedDocument[], action?: "upload" | "delete") {
+    if (!isControlled) {
+      setInternalUploadedDocs(nextUploadedDocs)
+    }
+
+    const summaries = nextUploadedDocs
       .map((doc) => doc.summary)
       .filter(Boolean) as FinancialSummary[]
 
     onSessionUpdate?.({
       sessionId,
-      uploadedDocs,
-      summaries
+      uploadedDocs: nextUploadedDocs,
+      summaries,
+      action
     })
-  }, [sessionId, uploadedDocs])
+  }
 
   async function submitFiles() {
     if (queuedFiles.length === 0 || isUploading) return
@@ -96,6 +105,9 @@ export default function FileUpload({
 
       const response = await fetch(`${API_BASE_URL}/upload`, {
         method: "POST",
+        headers: {
+          ...(await getAuthHeader())
+        },
         body: formData
       })
       const payload = await response.json()
@@ -112,7 +124,8 @@ export default function FileUpload({
         summary: file.summary
       }))
 
-      setUploadedDocs((prev) => [...prev, ...docs])
+      const nextUploadedDocs = [...uploadedDocs, ...docs]
+      pushUpdate(nextUploadedDocs, "upload")
       setQueuedFiles([])
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Upload failed")
@@ -127,7 +140,8 @@ export default function FileUpload({
       const response = await fetch(`${API_BASE_URL}/documents/${documentId}`, {
         method: "DELETE",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          ...(await getAuthHeader())
         },
         body: JSON.stringify({ sessionId })
       })
@@ -135,7 +149,8 @@ export default function FileUpload({
       if (!response.ok) {
         throw new Error(payload?.error || "Failed to remove document")
       }
-      setUploadedDocs((prev) => prev.filter((doc) => doc.documentId !== documentId))
+      const nextUploadedDocs = uploadedDocs.filter((doc) => doc.documentId !== documentId)
+      pushUpdate(nextUploadedDocs, "delete")
     } catch (removeError) {
       setError(removeError instanceof Error ? removeError.message : "Failed to remove document")
     }

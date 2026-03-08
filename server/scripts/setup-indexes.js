@@ -51,11 +51,14 @@ function isSearchCommandUnsupported(error) {
 async function ensureMongoIndexes(db) {
   const collection = db.collection(CHUNKS_COLLECTION)
 
+  await collection.createIndex({ userId: 1, sessionId: 1, documentId: 1 }, { name: "user_session_document_idx" })
   await collection.createIndex({ sessionId: 1, documentId: 1 }, { name: "session_document_idx" })
+  await collection.createIndex({ userId: 1, documentId: 1, chunkIndex: 1 }, { name: "user_document_chunk_idx" })
   await collection.createIndex({ documentId: 1, chunkIndex: 1 }, { name: "document_chunk_idx" })
+  await collection.createIndex({ userId: 1, createdAt: -1 }, { name: "user_created_at_idx" })
   await collection.createIndex({ filename: 1 }, { name: "filename_idx" })
   await collection.createIndex({ createdAt: -1 }, { name: "created_at_idx" })
-  console.log("Ensured MongoDB indexes for session/document metadata")
+  console.log("Ensured MongoDB indexes for user/session/document metadata")
 }
 
 async function main() {
@@ -80,6 +83,7 @@ async function main() {
           numDimensions,
           similarity: "cosine"
         },
+        { type: "filter", path: "userId" },
         { type: "filter", path: "sessionId" },
         { type: "filter", path: "documentId" },
         { type: "filter", path: "filename" },

@@ -69,6 +69,7 @@ Filter Builder
 function buildFilter(options) {
   const filter = {}
 
+  if (options.userId) filter.userId = options.userId
   if (options.documentId) filter.documentId = options.documentId
   if (options.sessionId) filter.sessionId = options.sessionId
 
@@ -100,6 +101,7 @@ async function runVectorSearch(questionEmbedding, options) {
           text: 1,
           chunkIndex: 1,
           documentId: 1,
+          userId: 1,
           sessionId: 1,
           filename: 1,
           sourceType: 1,
@@ -119,6 +121,7 @@ async function runVectorSearch(questionEmbedding, options) {
     const fallbackLimit = Math.max(options.limit * 20, 60)
     const unfilteredResults = await run(null, fallbackLimit)
     return unfilteredResults.filter((doc) => {
+      if (options.userId && doc.userId !== options.userId) return false
       if (options.sessionId && doc.sessionId !== options.sessionId) return false
       if (options.documentId && doc.documentId !== options.documentId) return false
       return true
@@ -134,6 +137,7 @@ async function runVectorSearch(questionEmbedding, options) {
     const fallbackLimit = Math.max(options.limit * 20, 60)
     const unfilteredResults = await run(null, fallbackLimit)
     return unfilteredResults.filter((doc) => {
+      if (options.userId && doc.userId !== options.userId) return false
       if (options.sessionId && doc.sessionId !== options.sessionId) return false
       if (options.documentId && doc.documentId !== options.documentId) return false
       return true
@@ -171,6 +175,7 @@ async function runTextSearch(question, options) {
         text: 1,
         chunkIndex: 1,
         documentId: 1,
+        userId: 1,
         sessionId: 1,
         filename: 1,
         sourceType: 1,
@@ -208,6 +213,7 @@ async function runSessionFallback(options) {
       text: 1,
       chunkIndex: 1,
       documentId: 1,
+      userId: 1,
       sessionId: 1,
       filename: 1,
       sourceType: 1
@@ -244,6 +250,7 @@ Main RAG Function
 export async function answerQuestion(question, options = {}) {
 
   const retrievalOptions = {
+    userId: options.userId || null,
     documentId: options.documentId || null,
     sessionId: options.sessionId || null,
     hybrid: options.hybrid !== false,
@@ -301,6 +308,7 @@ ${question}
     answer: text,
     sources: chunks.map((chunk) => ({
       id: chunk._id,
+      userId: chunk.userId,
       sessionId: chunk.sessionId,
       documentId: chunk.documentId,
       filename: chunk.filename,
