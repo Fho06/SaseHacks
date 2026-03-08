@@ -1,0 +1,407 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 9 /Kids [6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R 18 0 R 20 0 R 22 0 R] >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Length 2828 >>
+stream
+BT /F2 22 Tf 1 0 0 1 54 730 Tm (FinVoice AI Repository Documentation) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 684 Tm (Generated: March 8, 2026) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 664 Tm (Repository root: `C:\\Users\\Owner\\.vscode\\projects\\Hackathons\\SASEHACKS26\\SaseHacks`) Tj ET
+BT /F2 16 Tf 1 0 0 1 54 628 Tm (1. Project Summary) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 592 Tm (FinVoice AI is a finance-document analysis application built around retrieval-augmented) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 577 Tm (generation. Users authenticate with Google through Firebase, upload financial documents,) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 562 Tm (ask questions about those documents, receive grounded answers from Gemini, and) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 547 Tm (optionally listen to answers through ElevenLabs text to speech. The repository also) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 532 Tm (includes AI-generated financial summaries and PowerPoint presentation generation based) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 517 Tm (on document briefings.) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 489 Tm (The current codebase is split into:) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 469 Tm (- A Vite + React + TypeScript frontend in `src`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 453 Tm (- An Express + MongoDB + Gemini backend in `server`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 437 Tm (- Static assets in `public`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 421 Tm (- Ad hoc development utilities and notes in `dev resources`) Tj ET
+BT /F2 16 Tf 1 0 0 1 54 389 Tm (2. Main User Workflows) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 349 Tm (Authentication) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 319 Tm (Users sign in with Google from the frontend. Firebase web auth runs in the browser, and) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 304 Tm (the frontend sends the Firebase ID token to the Express API in the `Authorization`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 289 Tm (header. The backend verifies that token with Firebase Admin and attaches `userId` to the) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 274 Tm (request context.) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 242 Tm (Upload and indexing) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 212 Tm (Authenticated users upload documents through the `FileUpload` component. The backend:) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 192 Tm (- Accepts uploaded files with `multer`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 176 Tm (- Extracts text from PDFs with `pdf-parse`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 160 Tm (- Generates an AI financial summary with Gemini) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 144 Tm (- Chunks the extracted text) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 128 Tm (- Embeds each chunk with Gemini embeddings) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 112 Tm (- Stores chunks and metadata in MongoDB Atlas) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 96 Tm (- Stores document summaries in a separate summaries collection) Tj ET
+BT /F1 9 Tf 1 0 0 1 54 24 Tm (FinVoice AI Repository Documentation | Page 1) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 2684 >>
+stream
+BT /F2 13 Tf 1 0 0 1 54 732 Tm (Grounded Q and A) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 702 Tm (Users ask questions from the landing page or conversation mode. The backend:) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 682 Tm (- Embeds the question) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 666 Tm (- Retrieves relevant chunks from Atlas Vector Search and Atlas Search text search) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 650 Tm (- Applies reciprocal rank fusion when hybrid retrieval is enabled) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 634 Tm (- Builds a context string from retrieved chunks only) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 618 Tm (- Sends that context to Gemini to produce a grounded answer) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 602 Tm (- Returns answer text plus chunk citations) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 574 Tm (Conversation mode) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 544 Tm (The repository includes a recurring conversation UI where users can:) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 524 Tm (- Browse previously uploaded documents) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 508 Tm (- Select one file or all files as context) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 492 Tm (- Upload additional files from the same screen) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 476 Tm (- Continue asking follow-up questions) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 460 Tm (- Play assistant responses with text to speech) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 432 Tm (Presentation generation) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 402 Tm (The frontend can request a slide deck from the backend using a financial briefing. The) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 387 Tm (backend uses Gemini to generate slide content, optionally generates a shared background) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 372 Tm (image, and exports a `.pptx` file through `pptxgenjs`.) Tj ET
+BT /F2 16 Tf 1 0 0 1 54 336 Tm (3. Frontend Architecture) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 296 Tm (Entry points) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 266 Tm (The Vite runtime entry point is `src/main.tsx`, which renders `src/App.tsx`.) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 251 Tm (`src/App.tsx` wraps the app with:) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 231 Tm (- `AuthProvider`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 215 Tm (- `ThemeProvider`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 199 Tm (- `FinVoiceLanding` from `src/app/page.tsx`) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 171 Tm (Major frontend modules) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 141 Tm (- `src/app/page.tsx`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 125 Tm (The landing page and the main upload / ask / summary workflow. It also toggles into) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 110 Tm (conversation mode.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 82 Tm (- `src/components/DocumentChatWorkspace.tsx`) Tj ET
+BT /F1 9 Tf 1 0 0 1 54 24 Tm (FinVoice AI Repository Documentation | Page 2) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Length 2674 >>
+stream
+BT /F1 11 Tf 1 0 0 1 54 736 Tm (The recurring conversation interface. It supports document selection, upload, deletion,) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 721 Tm (ask flow, citations, and per-message text to speech.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 693 Tm (- `src/components/FileUpload.tsx`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 677 Tm (Upload queue, drag-and-drop input, upload submission, document deletion, and local) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 662 Tm (session list display.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 634 Tm (- `src/providers/AuthProvider.tsx`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 618 Tm (Browser-side Firebase auth state and Google sign-in / sign-out actions.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 590 Tm (- `src/lib/firebase.ts`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 574 Tm (Firebase web SDK initialization from Vite environment variables.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 546 Tm (- `src/lib/api-auth.ts`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 530 Tm (Builds the `Authorization: Bearer <token>` header from the current Firebase user.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 502 Tm (- `src/components/PresentationGenerator.tsx`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 486 Tm (Generates and exports slide decks from a financial briefing payload.) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 454 Tm (Theme and layout) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 424 Tm (The app uses `next-themes`, but the repository is running as a Vite app, not a Next.js) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 409 Tm (app. The active runtime path is `src/main.tsx -> src/App.tsx -> src/app/page.tsx`. The) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 394 Tm (file `src/app/layout.tsx` exists but is not the actual application shell used by Vite.) Tj ET
+BT /F2 16 Tf 1 0 0 1 54 358 Tm (4. Backend Architecture) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 322 Tm (The backend lives in `server/server.js` and exposes the main API routes.) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 290 Tm (Primary routes) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 260 Tm (- `POST /upload`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 244 Tm (Upload files, extract text, summarize, chunk, embed, and store.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 216 Tm (- `GET /documents`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 200 Tm (Return documents grouped by `documentId` for the authenticated user.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 172 Tm (- `DELETE /documents/:documentId`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 156 Tm (Delete chunks and summaries for a document owned by the authenticated user.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 128 Tm (- `POST /ask`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 112 Tm (Perform RAG retrieval and grounded answer generation.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 84 Tm (- `GET /summary/:documentId`) Tj ET
+BT /F1 9 Tf 1 0 0 1 54 24 Tm (FinVoice AI Repository Documentation | Page 3) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 9 0 R >>
+endobj
+11 0 obj
+<< /Length 2579 >>
+stream
+BT /F1 11 Tf 1 0 0 1 54 736 Tm (Return a stored AI financial briefing.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 708 Tm (- `POST /resummarize/:documentId`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 692 Tm (Rebuild the summary from stored chunks.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 664 Tm (- `POST /speech` and `GET /speech`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 648 Tm (Convert text to speech via ElevenLabs.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 620 Tm (- `POST /chat`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 604 Tm (Lightweight chat endpoint that currently calls `answerQuestion\(question\)` without) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 589 Tm (authenticated scoping.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 561 Tm (- Presentation routes under `/presentation`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 545 Tm (Generate AI slides and export `.pptx`.) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 513 Tm (Key backend modules) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 483 Tm (- `server/rag.js`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 467 Tm (Retrieval and answer generation. Uses Gemini embeddings and Gemini answer generation,) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 452 Tm (with vector search, text search, reciprocal rank fusion, and session fallback logic.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 424 Tm (- `server/chunker.js`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 408 Tm (Responsible for splitting extracted document text into chunks for storage and retrieval.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 380 Tm (- `server/embeddings.js`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 364 Tm (Creates embeddings for chunk text and query text using Gemini.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 336 Tm (- `server/summarizer.js`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 320 Tm (Produces a JSON financial briefing from uploaded document text using `gemini-2.5-flash`.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 292 Tm (- `server/tts.js`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 276 Tm (Uses ElevenLabs to generate speech audio from answer text.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 248 Tm (- `server/auth.js`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 232 Tm (Verifies Firebase ID tokens through Firebase Admin and attaches `userId` to requests.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 204 Tm (- `server/search-indexes.js`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 188 Tm (Defines collection and index constants.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 160 Tm (- `server/scripts/setup-indexes.js`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 144 Tm (Creates MongoDB indexes for user, session, and document metadata plus search-related) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 129 Tm (structures.) Tj ET
+BT /F2 16 Tf 1 0 0 1 54 93 Tm (5. Data Model and Persistence) Tj ET
+BT /F1 9 Tf 1 0 0 1 54 24 Tm (FinVoice AI Repository Documentation | Page 4) Tj ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 11 0 R >>
+endobj
+13 0 obj
+<< /Length 2241 >>
+stream
+BT /F2 13 Tf 1 0 0 1 54 732 Tm (MongoDB collections) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 702 Tm (- `chunks`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 686 Tm (Stores embedded document chunks and retrieval metadata.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 658 Tm (- `summaries`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 642 Tm (Stores AI-generated financial briefings by `documentId` and `userId`.) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 610 Tm (Chunk-level fields currently in use) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 580 Tm (- `userId`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 564 Tm (- `sessionId`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 548 Tm (- `documentId`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 532 Tm (- `filename`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 516 Tm (- `sourceType`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 500 Tm (- `page`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 484 Tm (- `chunkIndex`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 468 Tm (- `text`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 452 Tm (- `embedding`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 436 Tm (- `embeddingModel`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 420 Tm (- `createdAt`) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 392 Tm (Summary-level fields currently in use) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 362 Tm (- `userId`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 346 Tm (- `sessionId`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 330 Tm (- `documentId`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 314 Tm (- `filename`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 298 Tm (- `summary`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 282 Tm (- `createdAt`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 266 Tm (- `updatedAt`) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 238 Tm (Current ownership model) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 208 Tm (Documents are linked to both:) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 188 Tm (- The authenticated user account via `userId`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 172 Tm (- A frontend-controlled session token via `sessionId`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 148 Tm (The intended current behavior is:) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 128 Tm (- User identity persists across refreshes because Firebase auth remains active) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 112 Tm (- The page session token is ephemeral and resets on refresh) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 96 Tm (- Documents remain stored under the user account in MongoDB) Tj ET
+BT /F1 9 Tf 1 0 0 1 54 24 Tm (FinVoice AI Repository Documentation | Page 5) Tj ET
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 13 0 R >>
+endobj
+15 0 obj
+<< /Length 2545 >>
+stream
+BT /F1 11 Tf 1 0 0 1 70 736 Tm (- The "uploaded in this session" list only shows documents whose stored `sessionId`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 721 Tm (matches the current page session) Tj ET
+BT /F2 16 Tf 1 0 0 1 54 689 Tm (6. AI and Retrieval Stack) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 649 Tm (Gemini usage) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 619 Tm (The repository currently uses Gemini for:) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 599 Tm (- Chunk embeddings) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 583 Tm (- Query embeddings) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 567 Tm (- Q and A answer generation) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 551 Tm (- Financial summary generation) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 535 Tm (- Presentation slide generation) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 519 Tm (- Background generation support) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 495 Tm (The summary and answer code currently reference `gemini-2.5-flash`.) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 463 Tm (Retrieval strategy) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 433 Tm (The RAG path in `server/rag.js` currently does the following:) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 413 Tm (- Build a filter from `userId`, `documentId`, and optionally `sessionId`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 397 Tm (- Run vector search against MongoDB Atlas Vector Search) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 381 Tm (- Run keyword search against Atlas Search text index when hybrid mode is enabled) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 365 Tm (- Fuse results with reciprocal rank fusion) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 349 Tm (- Fall back to session-scoped recent chunks if retrieval is empty) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 321 Tm (Text to speech) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 291 Tm (Speech generation is handled through ElevenLabs. If ElevenLabs fails in the frontend,) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 276 Tm (the UI falls back to browser speech synthesis where implemented.) Tj ET
+BT /F2 16 Tf 1 0 0 1 54 240 Tm (7. Environment Configuration) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 200 Tm (Frontend environment variables) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 170 Tm (- `VITE_API_BASE_URL`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 154 Tm (- `VITE_FIREBASE_API_KEY`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 138 Tm (- `VITE_FIREBASE_AUTH_DOMAIN`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 122 Tm (- `VITE_FIREBASE_PROJECT_ID`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 106 Tm (- `VITE_FIREBASE_STORAGE_BUCKET`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 90 Tm (- `VITE_FIREBASE_MESSAGING_SENDER_ID`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 74 Tm (- `VITE_FIREBASE_APP_ID`) Tj ET
+BT /F1 9 Tf 1 0 0 1 54 24 Tm (FinVoice AI Repository Documentation | Page 6) Tj ET
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 15 0 R >>
+endobj
+17 0 obj
+<< /Length 2047 >>
+stream
+BT /F1 11 Tf 1 0 0 1 70 736 Tm (- `VITE_FIREBASE_MEASUREMENT_ID`) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 708 Tm (Backend environment variables) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 678 Tm (- `MONGODB_URI`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 662 Tm (- `GEMINI_API_KEY`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 646 Tm (- `ELEVENLABS_API_KEY`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 630 Tm (- `ELEVENLABS_VOICE_ID`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 614 Tm (- `FIREBASE_PROJECT_ID`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 598 Tm (- `FIREBASE_CLIENT_EMAIL`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 582 Tm (- `FIREBASE_PRIVATE_KEY`) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 554 Tm (Security note) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 524 Tm (The repository contains environment usage for live services. Documentation and planning) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 509 Tm (should continue to treat secrets as external configuration and never commit actual) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 494 Tm (credentials.) Tj ET
+BT /F2 16 Tf 1 0 0 1 54 458 Tm (8. Run and Build Commands) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 418 Tm (Frontend) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 388 Tm (- `npm install`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 372 Tm (- `npm run dev`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 356 Tm (- `npm run build`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 340 Tm (- `npm run preview`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 324 Tm (- `npm run typecheck`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 308 Tm (- `npm run lint`) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 280 Tm (Backend) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 250 Tm (From the `server` directory:) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 230 Tm (- `npm install`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 214 Tm (- `npm start`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 198 Tm (- `npm run setup:indexes`) Tj ET
+BT /F2 16 Tf 1 0 0 1 54 166 Tm (9. Current Implementation Status) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 126 Tm (Implemented capabilities) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 96 Tm (- Google sign-in through Firebase web auth) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 80 Tm (- Firebase token verification in Express) Tj ET
+BT /F1 9 Tf 1 0 0 1 54 24 Tm (FinVoice AI Repository Documentation | Page 7) Tj ET
+endstream
+endobj
+18 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 17 0 R >>
+endobj
+19 0 obj
+<< /Length 3007 >>
+stream
+BT /F1 11 Tf 1 0 0 1 70 736 Tm (- Per-user document ownership in MongoDB) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 720 Tm (- Upload and delete flows) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 704 Tm (- PDF parsing) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 688 Tm (- Chunking and Gemini embeddings) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 672 Tm (- Atlas-backed retrieval) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 656 Tm (- Gemini answer generation with citations) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 640 Tm (- Conversation mode with document selection) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 624 Tm (- Text to speech support) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 608 Tm (- AI financial briefing generation) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 592 Tm (- Presentation slide and PowerPoint generation) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 564 Tm (Important repository realities) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 534 Tm (- The runtime frontend is Vite, even though some `src/app` naming and a) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 519 Tm (`next.config.mjs` file remain in the repo.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 503 Tm (- `src/app/layout.tsx` is not the live application shell in the Vite runtime path.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 487 Tm (- `src/App.tsx` currently sets `ThemeProvider` with `defaultTheme="dark"`, which) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 472 Tm (conflicts with earlier efforts to make light mode the default.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 456 Tm (- `FileUpload.tsx` currently accepts both PDF and TXT files, which does not fully match) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 441 Tm (a PDF-only product direction.) Tj ET
+BT /F2 16 Tf 1 0 0 1 54 409 Tm (10. Current Technical Debt and Known Issues) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 369 Tm (Type and lint health) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 339 Tm (Current repository checks show:) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 319 Tm (- `npm run build` passes) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 303 Tm (- `npm run typecheck` fails) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 287 Tm (- `npm run lint` fails) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 263 Tm (Known typecheck errors include:) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 243 Tm (- `src/components/ui/sidebar.tsx`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 227 Tm (`VariantProps` must be imported as a type-only import.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 207 Tm (- `src/components/ui/sonner.tsx`) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 191 Tm (`ToasterProps` must be imported as a type-only import.) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 163 Tm (Known lint issues include:) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 143 Tm (- Explicit `any` usage in `src/components/ChatBox.tsx`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 127 Tm (- Explicit `any` usage in `src/components/FileUpload.tsx`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 111 Tm (- Explicit `any` usage in `src/components/PresentationGenerator.tsx`) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 95 Tm (- Multiple `react-refresh/only-export-components` violations in shared UI files) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 79 Tm (- `Math.random\(\)` purity issue in `src/components/ui/sidebar.tsx`) Tj ET
+BT /F1 9 Tf 1 0 0 1 54 24 Tm (FinVoice AI Repository Documentation | Page 8) Tj ET
+endstream
+endobj
+20 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 19 0 R >>
+endobj
+21 0 obj
+<< /Length 3537 >>
+stream
+BT /F1 11 Tf 1 0 0 1 70 736 Tm (- Effect-state warning and dependency warning in `src/providers/AuthProvider.tsx`) Tj ET
+BT /F2 13 Tf 1 0 0 1 54 708 Tm (Architectural inconsistencies to track) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 678 Tm (- The repo contains some Next-style structure inside a Vite app, which increases) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 663 Tm (confusion for future developers.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 647 Tm (- There is both a generic `POST /chat` path and a scoped `POST /ask` path. The former) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 632 Tm (currently bypasses the authenticated scoping behavior used by the main app.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 616 Tm (- Theme configuration is split across multiple files and does not yet have a single) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 601 Tm (canonical source of truth.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 585 Tm (- Build success is ahead of type and lint cleanliness, which is workable for a hackathon) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 570 Tm (but not ideal for maintainability.) Tj ET
+BT /F2 16 Tf 1 0 0 1 54 538 Tm (11. Recommended Next Planning Steps) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 502 Tm (- Consolidate the app structure around Vite conventions and remove unused Next-specific) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 487 Tm (artifacts.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 471 Tm (- Make theme default behavior consistent in a single runtime path.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 455 Tm (- Enforce PDF-only upload if that remains the product requirement.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 439 Tm (- Close the current lint and typecheck failures so CI can be trusted.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 423 Tm (- Decide whether `POST /chat` should remain, be secured, or be removed in favor of `POST) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 408 Tm (/ask`.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 392 Tm (- Add stronger repository-level documentation in `README.md` so operational setup does) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 377 Tm (not rely on source inspection.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 361 Tm (- Add tests for the upload, retrieval, auth, and session-scoping flows.) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 345 Tm (- Formalize the data schema for financial documents if the expanded finance-document) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 330 Tm (model remains in scope.) Tj ET
+BT /F2 16 Tf 1 0 0 1 54 298 Tm (12. Planning Notes for Future Contributors) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 262 Tm (This repository already contains the core mechanics for a useful document copilot:) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 247 Tm (authenticated uploads, per-user persistence, session scoping, retrieval, grounded) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 232 Tm (answers, summaries, and voice. The main planning challenge is no longer feature) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 217 Tm (feasibility. It is consolidation: reducing architectural drift, improving type and lint) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 202 Tm (hygiene, and making the runtime behavior easier to reason about for future contributors.) Tj ET
+BT /F1 11 Tf 1 0 0 1 54 174 Tm (From a planning perspective, the most valuable short-term work is:) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 154 Tm (- stabilize the runtime surface area) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 138 Tm (- reduce ambiguity between account-level and session-level document views) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 122 Tm (- clean up developer ergonomics) Tj ET
+BT /F1 11 Tf 1 0 0 1 70 106 Tm (- tighten the documentation around setup, environment configuration, and expected flows) Tj ET
+BT /F1 9 Tf 1 0 0 1 54 24 Tm (FinVoice AI Repository Documentation | Page 9) Tj ET
+endstream
+endobj
+22 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 21 0 R >>
+endobj
+xref
+0 23
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000170 00000 n 
+0000000240 00000 n 
+0000000315 00000 n 
+0000003195 00000 n 
+0000003331 00000 n 
+0000006067 00000 n 
+0000006203 00000 n 
+0000008929 00000 n 
+0000009066 00000 n 
+0000011698 00000 n 
+0000011836 00000 n 
+0000014130 00000 n 
+0000014268 00000 n 
+0000016866 00000 n 
+0000017004 00000 n 
+0000019104 00000 n 
+0000019242 00000 n 
+0000022302 00000 n 
+0000022440 00000 n 
+0000026030 00000 n 
+trailer
+<< /Size 23 /Root 1 0 R >>
+startxref
+26168
+%%EOF
