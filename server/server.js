@@ -6,6 +6,7 @@ import { randomUUID } from "crypto"
 import { answerQuestion } from "./rag.js"
 import { chunkText } from "./chunker.js"
 import { embedText } from "./embeddings.js"
+import { verifyFirebaseAuth } from "./auth.js"
 import { db } from "./mongodb.js"
 import { CHUNKS_COLLECTION, SUMMARIES_COLLECTION } from "./search-indexes.js"
 import { generateSpeech } from "./tts.js"
@@ -20,6 +21,10 @@ const app = express()
 function getSpeechErrorMessage(err) {
   const fallback = "Speech generation failed"
   if (!err) return fallback
+
+  if (Number(err?.statusCode) === 401) {
+    return "ElevenLabs unauthorized. Check ELEVENLABS_API_KEY in server/.env."
+  }
 
   const bodyMessage = err?.body?.detail?.message
   if (typeof bodyMessage === "string" && bodyMessage.trim()) {
@@ -42,13 +47,14 @@ app.post("/chat", handleChat)
 
 const upload = multer({ storage: multer.memoryStorage() })
 
-app.post("/upload", upload.array("files"), async (req, res) => {
+app.post("/upload", verifyFirebaseAuth, upload.array("files"), async (req, res) => {
   try {
     const files = req.files
     if (!Array.isArray(files) || files.length === 0) {
       return res.status(400).json({ error: "No files uploaded" })
     }
 
+    const userId = req.auth?.userId
     const sessionId = typeof req.body?.sessionId === "string" && req.body.sessionId.trim()
       ? req.body.sessionId.trim()
       : randomUUID()
@@ -78,6 +84,7 @@ app.post("/upload", upload.array("files"), async (req, res) => {
         )
 
         await db.collection(SUMMARIES_COLLECTION).insertOne({
+          userId,
           sessionId,
           documentId,
           filename: file.originalname,
@@ -96,6 +103,7 @@ app.post("/upload", upload.array("files"), async (req, res) => {
         const embedding = await embedText(chunks[i])
 
         chunkDocs.push({
+          userId,
           sessionId,
           documentId,
           filename: file.originalname || "uploaded-file.pdf",
@@ -135,29 +143,85 @@ app.post("/upload", upload.array("files"), async (req, res) => {
   }
 })
 
-app.delete("/documents/:documentId", async (req, res) => {
+app.get("/documents", verifyFirebaseAuth, async (req, res) => {
+  try {
+    const userId = req.auth?.userId
+    const chunks = await db.collection(CHUNKS_COLLECTION).aggregate([
+      { $match: { userId } },
+      {
+        $group: {
+          _id: "$documentId",
+          sessionId: { $first: "$sessionId" },
+          filename: { $first: "$filename" },
+          chunks: { $sum: 1 },
+          createdAt: { $max: "$createdAt" }
+        }
+      },
+      { $sort: { createdAt: -1 } }
+    ]).toArray()
+
+    if (chunks.length === 0) {
+      return res.json({ files: [] })
+    }
+
+    const documentIds = chunks.map((doc) => doc._id)
+    const summaries = await db.collection(SUMMARIES_COLLECTION).find({
+      userId,
+      documentId: { $in: documentIds }
+    }).toArray()
+
+    const summaryByDocId = new Map(
+      summaries.map((summaryDoc) => [summaryDoc.documentId, summaryDoc.summary])
+    )
+
+    const files = chunks.map((doc) => ({
+      documentId: doc._id,
+      sessionId: doc.sessionId,
+      filename: doc.filename || "uploaded-file.pdf",
+      chunks: doc.chunks,
+      summary: summaryByDocId.get(doc._id) || null
+    }))
+
+    res.json({ files })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: "Failed to fetch documents" })
+  }
+})
+
+app.delete("/documents/:documentId", verifyFirebaseAuth, async (req, res) => {
   try {
     const documentId = req.params.documentId
     if (!documentId) {
       return res.status(400).json({ error: "documentId is required" })
     }
 
+    const userId = req.auth?.userId
     const sessionId = typeof req.body?.sessionId === "string" && req.body.sessionId.trim()
       ? req.body.sessionId.trim()
       : null
-    const filter = sessionId ? { documentId, sessionId } : { documentId }
+    let result = { deletedCount: 0 }
 
-    const result = await db.collection(CHUNKS_COLLECTION).deleteMany(filter)
+    if (sessionId) {
+      result = await db.collection(CHUNKS_COLLECTION).deleteMany({ documentId, userId, sessionId })
+    }
+    if (!result.deletedCount) {
+      result = await db.collection(CHUNKS_COLLECTION).deleteMany({ documentId, userId })
+    }
 
     if (result.deletedCount === 0) {
       return res.status(404).json({ error: "No chunks found for that document" })
     }
 
+    const summaryDeleteResult = await db.collection(SUMMARIES_COLLECTION).deleteMany({ documentId, userId })
+
     res.json({
       message: "Document removed from session",
       documentId,
+      userId,
       sessionId,
-      deletedChunks: result.deletedCount
+      deletedChunks: result.deletedCount,
+      deletedSummaries: summaryDeleteResult.deletedCount
     })
   } catch (error) {
     console.error(error)
@@ -165,7 +229,7 @@ app.delete("/documents/:documentId", async (req, res) => {
   }
 })
 
-app.post("/ask", async (req, res) => {
+app.post("/ask", verifyFirebaseAuth, async (req, res) => {
   try {
     const { question, documentId, sessionId, hybrid, limit } = req.body
     if (!question) {
@@ -176,8 +240,10 @@ app.post("/ask", async (req, res) => {
     const resultLimit = Math.max(1, Math.min(Number(limit) || 5, 10))
     const scopedDocumentId = typeof documentId === "string" && documentId.trim() ? documentId.trim() : null
     const scopedSessionId = typeof sessionId === "string" && sessionId.trim() ? sessionId.trim() : null
+    const userId = req.auth?.userId
 
     const result = await answerQuestion(question, {
+      userId,
       documentId: scopedDocumentId,
       sessionId: scopedSessionId,
       hybrid: useHybrid,
@@ -234,13 +300,14 @@ app.post("/speech", async (req, res) => {
   }
 })
 
-app.get("/summary/:documentId", async (req, res) => {
+app.get("/summary/:documentId", verifyFirebaseAuth, async (req, res) => {
   try {
     const { documentId } = req.params
+    const userId = req.auth?.userId
 
     const doc = await db
       .collection(SUMMARIES_COLLECTION)
-      .findOne({ documentId })
+      .findOne({ documentId, userId })
 
     if (!doc) {
       return res.status(404).json({
@@ -258,13 +325,14 @@ app.get("/summary/:documentId", async (req, res) => {
   }
 })
 
-app.post("/resummarize/:documentId", async (req, res) => {
+app.post("/resummarize/:documentId", verifyFirebaseAuth, async (req, res) => {
   try {
     const { documentId } = req.params
+    const userId = req.auth?.userId
 
     const chunks = await db
       .collection(CHUNKS_COLLECTION)
-      .find({ documentId })
+      .find({ documentId, userId })
       .sort({ chunkIndex: 1 })
       .toArray()
 
@@ -280,7 +348,7 @@ app.post("/resummarize/:documentId", async (req, res) => {
     )
 
     await db.collection(SUMMARIES_COLLECTION).updateOne(
-      { documentId },
+      { documentId, userId },
       { $set: { summary, updatedAt: new Date() } }
     )
 

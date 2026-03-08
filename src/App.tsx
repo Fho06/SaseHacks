@@ -1,11 +1,14 @@
 import FinVoiceLanding from "@/app/page"
 import { ThemeProvider } from "@/components/theme-provider"
+import { AuthProvider } from "@/providers/AuthProvider"
 
 function App() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-      <FinVoiceLanding />
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        <FinVoiceLanding />
+      </ThemeProvider>
+    </AuthProvider>
   )
 }
 

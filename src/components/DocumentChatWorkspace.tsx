@@ -3,6 +3,7 @@ import { ArrowLeft, FileText, Moon, Play, Send, Square, Sun, Trash2, Volume2, Vo
 import { useTheme } from "next-themes"
 import FileUpload, { type UploadedDocument } from "@/components/FileUpload"
 import { Button } from "@/components/ui/button"
+import { getAuthHeader } from "@/lib/api-auth"
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5050"
 const ALL_FILES_ID = "__all_files__"
@@ -78,7 +79,7 @@ export default function DocumentChatWorkspace({
   const [input, setInput] = useState("")
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [ttsEnabled, setTtsEnabled] = useState(true)
+  const [ttsEnabled, setTtsEnabled] = useState(false)
   const [ttsLoading, setTtsLoading] = useState(false)
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null)
   const viewportRef = useRef<HTMLDivElement | null>(null)
@@ -206,14 +207,21 @@ export default function DocumentChatWorkspace({
     }
   }, [ttsEnabled])
 
-  async function handleRemoveDocument(documentId: string) {
-    if (!sessionId) return
+  useEffect(() => {
+    setSessionId(initialSessionId || "")
+  }, [initialSessionId])
 
+  useEffect(() => {
+    setUploadedDocs(initialUploadedDocs)
+  }, [initialUploadedDocs])
+
+  async function handleRemoveDocument(documentId: string) {
     try {
       const response = await fetch(`${API_BASE_URL}/documents/${documentId}`, {
         method: "DELETE",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          ...(await getAuthHeader())
         },
         body: JSON.stringify({ sessionId })
       })
@@ -237,7 +245,7 @@ export default function DocumentChatWorkspace({
     const question = input.trim()
     if (!question || isSending) return
 
-    if (!sessionId || uploadedDocs.length === 0) {
+    if (uploadedDocs.length === 0) {
       setError("Upload at least one file before starting the conversation.")
       return
     }
@@ -260,11 +268,11 @@ export default function DocumentChatWorkspace({
       const response = await fetch(`${API_BASE_URL}/ask`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          ...(await getAuthHeader())
         },
         body: JSON.stringify({
           question: questionWithHistory,
-          sessionId,
           hybrid: true,
           limit: 5,
           ...(selectedDocumentId !== ALL_FILES_ID ? { documentId: selectedDocumentId } : {})
