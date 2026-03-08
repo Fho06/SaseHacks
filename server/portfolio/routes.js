@@ -1,5 +1,5 @@
 import express from "express"
-import { db } from "../mongodb.js"
+import { db } from "../config/mongodb.js"
 import { analyzePortfolioCompany } from "./analyzer.js"
 import {
   COMPANY_PROFILES_COLLECTION,

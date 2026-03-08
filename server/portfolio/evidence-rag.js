@@ -1,12 +1,12 @@
-import { db } from "../mongodb.js"
-import { chunkText } from "../chunker.js"
-import { embedText } from "../embeddings.js"
+import { db } from "../config/mongodb.js"
+import { chunkText } from "../services/chunker.js"
+import { embedText } from "../services/embeddings.js"
 import {
   CHUNKS_COLLECTION,
   TEXT_INDEX_NAME,
   VECTOR_INDEX_NAME,
   VECTOR_PATH
-} from "../search-indexes.js"
+} from "../search/search-indexes.js"
 import { portfolioConfig } from "./config.js"
 
 const PORTFOLIO_EVIDENCE_SOURCE_TYPE = "portfolio_evidence"
