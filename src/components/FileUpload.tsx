@@ -6,10 +6,24 @@ type UploadedDocument = {
   documentId: string
   filename: string
   chunks: number
+  summary?: FinancialSummary
 }
 
 type FileUploadProps = {
-  onSessionUpdate?: (payload: { sessionId: string; uploadedDocs: UploadedDocument[] }) => void
+  onSessionUpdate?: (payload: {
+    sessionId: string
+    uploadedDocs: UploadedDocument[]
+    summaries?: FinancialSummary[]
+  }) => void
+}
+
+type FinancialSummary = {
+  title: string
+  summary: string
+  keyMetrics: string[]
+  majorRisks: string[]
+  managementTone: string
+  redFlags: string[]
 }
 
 function formatBytes(bytes: number) {
@@ -49,7 +63,15 @@ export default function FileUpload({ onSessionUpdate }: FileUploadProps) {
   })
 
   useEffect(() => {
-    onSessionUpdate?.({ sessionId, uploadedDocs })
+    const summaries = uploadedDocs
+      .map((doc) => doc.summary)
+      .filter(Boolean) as FinancialSummary[]
+
+    onSessionUpdate?.({
+      sessionId,
+      uploadedDocs,
+      summaries
+    })
   }, [sessionId, uploadedDocs])
 
   async function submitFiles() {
@@ -73,7 +95,15 @@ export default function FileUpload({ onSessionUpdate }: FileUploadProps) {
         throw new Error(payload?.error || "Upload failed")
       }
 
-      setUploadedDocs((prev) => [...prev, ...(payload.files || [])])
+      const docs: UploadedDocument[] = (payload.files || []).map((file: any) => ({
+        sessionId: payload.sessionId,
+        documentId: file.documentId,
+        filename: file.filename,
+        chunks: file.chunks,
+        summary: file.summary
+      }))
+
+      setUploadedDocs((prev) => [...prev, ...docs])
       setQueuedFiles([])
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Upload failed")
