@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai"
+import { normalizeFinancialSummary } from "./summary-normalizer.js"
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY
@@ -81,5 +82,12 @@ ${truncatedText}
     }
   }
 
-  return parsed
+  return normalizeFinancialSummary(parsed) || {
+    title: "AI Financial Briefing",
+    summary: "Unable to generate summary from the document.",
+    keyMetrics: [],
+    majorRisks: [],
+    managementTone: "unknown",
+    redFlags: []
+  }
 }

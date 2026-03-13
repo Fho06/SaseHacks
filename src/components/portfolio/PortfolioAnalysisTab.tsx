@@ -1,21 +1,16 @@
 import { useEffect, useState, type FormEvent } from "react"
 import { ArrowLeft, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { analyzePortfolio, getPortfolioHistory, type PortfolioAnalysisResponse, type PortfolioAttribute } from "@/lib/portfolio-api"
+import {
+  analyzePortfolio,
+  getPortfolioHistory,
+  type PortfolioAnalysisResponse,
+  type PortfolioAttribute,
+  type PortfolioHistoryItem
+} from "@/lib/portfolio-api"
 
 type PortfolioAnalysisTabProps = {
   onBack: () => void
-}
-
-type HistoryItem = {
-  _id?: string
-  ticker?: string
-  companyName?: string
-  createdAt?: string
-  analysis?: {
-    overallAssessment?: number
-    verdict?: string
-  }
 }
 
 function scoreTone(score: number) {
@@ -131,7 +126,7 @@ function SourceList({ analysis }: { analysis: PortfolioAnalysisResponse }) {
 export default function PortfolioAnalysisTab({ onBack }: PortfolioAnalysisTabProps) {
   const [query, setQuery] = useState("")
   const [analysis, setAnalysis] = useState<PortfolioAnalysisResponse | null>(null)
-  const [history, setHistory] = useState<HistoryItem[]>([])
+  const [history, setHistory] = useState<PortfolioHistoryItem[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

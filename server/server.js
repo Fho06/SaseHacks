@@ -12,6 +12,7 @@ import { CHUNKS_COLLECTION, SUMMARIES_COLLECTION } from "./search/search-indexes
 import { generateSpeech } from "./services/tts.js"
 import { handleChat } from "./routes/chat.js"
 import { generateFinancialSummary } from "./services/summarizer.js"
+import { normalizeFinancialSummary } from "./services/summary-normalizer.js"
 import presentationRoutes from "./routes/presentation-routes.js"
 import portfolioRoutes from "./portfolio/routes.js"
 import { validatePortfolioConfigAtStartup } from "./portfolio/config.js"
@@ -134,7 +135,7 @@ app.post("/upload", verifyFirebaseAuth, upload.array("files"), async (req, res) 
         documentId,
         filename: file.originalname || "uploaded-file.pdf",
         chunks: chunkDocs.length,
-        summary
+        summary: normalizeFinancialSummary(summary)
       })
     }
 
@@ -190,7 +191,7 @@ app.get("/documents", verifyFirebaseAuth, async (req, res) => {
       sessionId: doc.sessionId,
       filename: doc.filename || "uploaded-file.pdf",
       chunks: doc.chunks,
-      summary: summaryByDocId.get(doc._id) || null
+      summary: normalizeFinancialSummary(summaryByDocId.get(doc._id))
     }))
 
     res.json({ files })
@@ -326,7 +327,7 @@ app.get("/summary/:documentId", verifyFirebaseAuth, async (req, res) => {
       })
     }
 
-    res.json(doc.summary)
+    res.json(normalizeFinancialSummary(doc.summary))
 
   } catch (error) {
     console.error(error)
@@ -363,7 +364,7 @@ app.post("/resummarize/:documentId", verifyFirebaseAuth, async (req, res) => {
       { $set: { summary, updatedAt: new Date() } }
     )
 
-    res.json(summary)
+    res.json(normalizeFinancialSummary(summary))
 
   } catch (err) {
     console.error("Resummarize error:", err)

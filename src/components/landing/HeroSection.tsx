@@ -6,6 +6,7 @@ import FileUpload, { type UploadedDocument } from "@/components/documents/FileUp
 import PresentationGenerator from "@/components/PresentationGenerator"
 import { ArrowRight, Database, Zap, Volume2, Award, Mic } from "lucide-react"
 import type { ReactNode } from "react"
+import { normalizeFinancialSummary, type FinancialSummary } from "@/lib/summary"
 
 const TechStackBadge = ({ label, icon: Icon }: { label: string; icon: ReactNode }) => (
   <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary/50 border border-border/50 text-sm text-foreground">
@@ -25,19 +26,10 @@ type AskResponse = {
   sources: AskSource[]
 }
 
-type FinancialSummary = {
-  title?: string
-  summary: string
-  keyMetrics?: string[]
-  majorRisks?: string[]
-  managementTone?: string
-  redFlags?: string[]
-}
-
 type SessionUpdatePayload = {
   sessionId: string
   uploadedDocs: UploadedDocument[]
-  summaries?: FinancialSummary[]
+  summaries?: Array<FinancialSummary | null>
   action?: "upload" | "delete"
 }
 
@@ -110,7 +102,7 @@ export default function HeroSection(props: HeroSectionProps) {
 
   function syncSummaryFromSession(
     docs: UploadedDocument[],
-    summaries: FinancialSummary[] | undefined,
+    summaries: Array<FinancialSummary | null> | undefined,
     preferredDocId?: string | null
   ) {
     if (!Array.isArray(summaries) || summaries.length === 0 || docs.length === 0) {
@@ -119,15 +111,17 @@ export default function HeroSection(props: HeroSectionProps) {
 
     const targetDocId = preferredDocId || activeDocId || documentId || docs[0]?.documentId
     const targetIndex = docs.findIndex((doc) => doc.documentId === targetDocId)
+    const normalizedSummaries = summaries.map((item) => normalizeFinancialSummary(item))
 
-    if (targetIndex >= 0 && summaries[targetIndex]) {
-      setSummary(summaries[targetIndex])
+    if (targetIndex >= 0 && normalizedSummaries[targetIndex]) {
+      setSummary(normalizedSummaries[targetIndex])
       setSummaryError(null)
       return true
     }
 
-    if (summaries[0]) {
-      setSummary(summaries[0])
+    const firstSummary = normalizedSummaries.find(Boolean)
+    if (firstSummary) {
+      setSummary(firstSummary)
       setSummaryError(null)
       return true
     }

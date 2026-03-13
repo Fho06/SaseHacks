@@ -106,6 +106,21 @@ export type PortfolioAnalysisResponse = {
   warnings?: string[]
 }
 
+export type PortfolioHistoryItem = {
+  _id?: string
+  ticker?: string
+  companyName?: string
+  createdAt?: string
+  analysis?: {
+    overallAssessment?: number
+    verdict?: string
+  }
+}
+
+export type PortfolioHistoryResponse = {
+  items: PortfolioHistoryItem[]
+}
+
 async function parseApiPayload(response: Response): Promise<unknown> {
   const contentType = response.headers.get("content-type")?.toLowerCase() || ""
   if (contentType.includes("application/json")) {
@@ -149,7 +164,7 @@ export async function analyzePortfolio(query: string): Promise<PortfolioAnalysis
   return payload as PortfolioAnalysisResponse
 }
 
-export async function getPortfolioHistory() {
+export async function getPortfolioHistory(): Promise<PortfolioHistoryResponse> {
   const response = await fetch(`${API_BASE_URL}/portfolio/history`, {
     method: "GET",
     headers: {
@@ -162,5 +177,5 @@ export async function getPortfolioHistory() {
     throw new Error(normalizePortfolioApiError(payload, "Failed to load portfolio history"))
   }
 
-  return payload
+  return payload as PortfolioHistoryResponse
 }

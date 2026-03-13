@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useDropzone } from "react-dropzone"
 import { getAuthHeader } from "@/lib/api-auth"
+import { normalizeFinancialSummary, type FinancialSummary } from "@/lib/summary"
 
 export type UploadedDocument = {
   sessionId: string
@@ -17,18 +18,9 @@ type FileUploadProps = {
   onSessionUpdate?: (payload: {
     sessionId: string
     uploadedDocs: UploadedDocument[]
-    summaries?: FinancialSummary[]
+    summaries?: Array<FinancialSummary | null>
     action?: "upload" | "delete"
   }) => void
-}
-
-export type FinancialSummary = {
-  title: string
-  summary: string
-  keyMetrics: string[]
-  majorRisks: string[]
-  managementTone: string
-  redFlags: string[]
 }
 
 function formatBytes(bytes: number) {
@@ -80,9 +72,7 @@ export default function FileUpload({
       setInternalUploadedDocs(nextUploadedDocs)
     }
 
-    const summaries = nextUploadedDocs
-      .map((doc) => doc.summary)
-      .filter(Boolean) as FinancialSummary[]
+    const summaries = nextUploadedDocs.map((doc) => normalizeFinancialSummary(doc.summary))
 
     onSessionUpdate?.({
       sessionId,
@@ -121,7 +111,7 @@ export default function FileUpload({
         documentId: file.documentId,
         filename: file.filename,
         chunks: file.chunks,
-        summary: file.summary
+        summary: normalizeFinancialSummary(file.summary) || undefined
       }))
 
       const nextUploadedDocs = [...uploadedDocs, ...docs]

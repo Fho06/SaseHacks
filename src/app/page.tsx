@@ -1,10 +1,11 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
-import FileUpload, { type UploadedDocument } from "@/components/documents/FileUpload"
+import { type UploadedDocument } from "@/components/documents/FileUpload"
 import DocumentChatWorkspace from "@/components/documents/DocumentChatWorkspace"
 import PortfolioAnalysisTab from "@/components/portfolio/PortfolioAnalysisTab"
 import { getAuthHeader } from "@/lib/api-auth"
+import { normalizeFinancialSummary, type FinancialSummary } from "@/lib/summary"
 import { useAuth } from "@/providers/AuthProvider"
 import {
   Navbar,
@@ -30,15 +31,6 @@ type AskSource = {
 type AskResponse = {
   answer: string
   sources: AskSource[]
-}
-
-type FinancialSummary = {
-  title?: string
-  summary: string
-  keyMetrics?: string[]
-  majorRisks?: string[]
-  managementTone?: string
-  redFlags?: string[]
 }
 
 function formatAnswerText(raw: string) {
@@ -115,10 +107,15 @@ export default function FinVoiceLanding() {
         const docs: UploadedDocument[] = Array.isArray(payload?.files) ? payload.files : []
         if (cancelled) return
 
-        setUploadedDocs(docs)
-        setSessionId(docs[0]?.sessionId || "")
-        setDocumentId(docs[0]?.documentId || null)
-        setSummary(docs[0]?.summary || null)
+        const normalizedDocs = docs.map((doc) => ({
+          ...doc,
+          summary: normalizeFinancialSummary(doc.summary) || undefined
+        }))
+
+        setUploadedDocs(normalizedDocs)
+        setSessionId(normalizedDocs[0]?.sessionId || "")
+        setDocumentId(normalizedDocs[0]?.documentId || null)
+        setSummary(normalizeFinancialSummary(normalizedDocs[0]?.summary) || null)
         setSummaryError(null)
         setLoadError(null)
       } catch (error) {
@@ -354,7 +351,7 @@ export default function FinVoiceLanding() {
 
       if (!res.ok) throw new Error(data?.error || "Failed to regenerate summary")
 
-      setSummary(data)
+      setSummary(normalizeFinancialSummary(data))
       setSummaryError(null)
 
     } catch (err) {
